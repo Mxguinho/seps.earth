@@ -1,8 +1,7 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <title>Mapa Interativo - Estado de São Paulo</title>
+    <title>Mapa Interativo - Destaque de Países</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -42,12 +41,12 @@
 </head>
 
 <body>
-
-
-    <div style="background-color: rgba(8, 37, 134, 0.322); width: 300px; height: 100%;  position: fixed; right: 0px;">
-            <div>asd</div>
+   
+    <div style="background-color: rgba(8, 37, 134, 0.322); display: none; width: 300px; height: 100%; position: fixed; right: 0px; z-index: 10;">
+        <div>asd</div>
     </div>
-<div id="map"></div>
+
+    <div id="map"></div>
 
 <script type="module">
 
@@ -60,17 +59,11 @@ import * as maplibregl from
 // ==========================================
 
 const map = new maplibregl.Map({
-
     container: 'map',
-
-    zoom: 5.5,
-
-    center: [-46.6333, -23.5505],
-
+    zoom: 2.2,
+    center: [-46.6333, -15.0],
     pitch: 0,
-
     maxPitch: 85
-
 });
 
 
@@ -88,16 +81,13 @@ map.setStyle(
             };
 
             nextStyle.sources = {
-
                 ...nextStyle.sources,
 
                 satelliteSource: {
                     type: 'raster',
-
                     tiles: [
                         'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg'
                     ],
-
                     tileSize: 256
                 },
 
@@ -110,18 +100,14 @@ map.setStyle(
                     type: 'raster-dem',
                     url: 'https://tiles.mapterhorn.com/tilejson.json'
                 }
-
             };
-
 
             nextStyle.terrain = {
                 source: 'terrainSource',
                 exaggeration: 1
             };
 
-
             nextStyle.sky = {
-
                 'atmosphere-blend': [
                     'interpolate',
                     ['linear'],
@@ -129,75 +115,44 @@ map.setStyle(
                     0, 1,
                     2, 0
                 ]
-
             };
 
-
             nextStyle.layers.push({
-
                 id: 'hills',
-
                 type: 'hillshade',
-
                 source: 'hillshadeSource',
-
                 layout: {
                     visibility: 'visible'
                 },
-
                 paint: {
                     'hillshade-shadow-color': '#473B24'
                 }
-
             });
 
-
             const firstRoadLayer = nextStyle.layers.find(
-                layer =>
-                    layer['source-layer'] === 'transportation'
+                layer => layer['source-layer'] === 'transportation'
             );
-
 
             nextStyle.layers.splice(
                 nextStyle.layers.indexOf(firstRoadLayer),
                 0,
                 {
-
                     id: 'satellite',
-
                     type: 'raster',
-
                     source: 'satelliteSource',
-
                     layout: {
                         visibility: 'visible'
                     },
-
                     paint: {
                         'raster-opacity': 1
                     }
-
                 }
             );
 
-
             return nextStyle;
-
         }
     }
 );
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // ==========================================
@@ -206,11 +161,9 @@ map.setStyle(
 
 map.addControl(
     new maplibregl.NavigationControl({
-
         visualizePitch: true,
         showZoom: true,
         showCompass: true
-
     })
 );
 
@@ -220,261 +173,177 @@ map.addControl(
 
 map.addControl(
     new maplibregl.TerrainControl({
-
         source: 'terrainSource',
         exaggeration: 1
-
     })
 );
 
 
 // ==========================================
-// DESTAQUE INTERATIVO - SÃO PAULO
+// DESTAQUE INTERATIVO - PAÍSES
 // ==========================================
 
-let estadoSelecionado = false;
+let paisSelecionadoId = null;
 
 map.on('load', async () => {
 
     try {
-
-        // GeoJSON dos estados brasileiros
-        // Dados com limites geográficos do IBGE
-
+        // GeoJSON global com os limites dos países
         const geojsonURL =
-            'https://cdn.jsdelivr.net/gh/henriquemalvar/br-geojson@main/dist/estados.geojson';
-
-
-        // Carrega os limites geográficos
+            'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
 
         const resposta = await fetch(geojsonURL);
 
         if (!resposta.ok) {
-            throw new Error('Não foi possível carregar o GeoJSON.');
+            throw new Error('Não foi possível carregar o GeoJSON dos países.');
         }
 
-        const estados = await resposta.json();
-
-
-        // Localiza somente o estado de São Paulo
-
-        const saoPaulo = {
-
-            type: 'FeatureCollection',
-
-            features: estados.features.filter(feature => {
-
-                return (
-                    feature.properties.sigla === 'SP'
-                );
-
-            })
-
-        };
-
-
-        if (saoPaulo.features.length === 0) {
-            throw new Error('Estado de São Paulo não encontrado.');
-        }
-
+        const paises = await resposta.json();
 
         // ======================================
         // FONTE GEOJSON
         // ======================================
 
-        map.addSource('sao-paulo-source', {
-
+        map.addSource('paises-source', {
             type: 'geojson',
-
-            data: saoPaulo
-
+            data: paises,
+            generateId: true // Cria ID único automático para cada país
         });
 
-
         // ======================================
-        // PREENCHIMENTO DO ESTADO
+        // PREENCHIMENTO DO PAÍS (INVISÍVEL ATÉ O CLIQUE)
         // ======================================
 
         map.addLayer({
-
-            id: 'sp-fill',
-
+            id: 'paises-fill',
             type: 'fill',
-
-            source: 'sao-paulo-source',
-
+            source: 'paises-source',
             paint: {
-
                 'fill-color': '#00CFFF',
-
-                'fill-opacity': 0
-
+                'fill-opacity': [
+                    'case',
+                    ['boolean', ['feature-state', 'selected'], false],
+                    0.32,
+                    0
+                ]
             }
-
         });
 
-
         // ======================================
-        // CONTORNO DO ESTADO
+        // CONTORNO DO PAÍS
         // ======================================
 
         map.addLayer({
-
-            id: 'sp-outline',
-
+            id: 'paises-outline',
             type: 'line',
-
-            source: 'sao-paulo-source',
-
+            source: 'paises-source',
             paint: {
-
                 'line-color': '#00DFFF',
-
                 'line-width': 3,
-
-                'line-opacity': 0,
-
-                'line-blur': 0.5
-
+                'line-blur': 0.5,
+                'line-opacity': [
+                    'case',
+                    ['boolean', ['feature-state', 'selected'], false],
+                    1,
+                    0
+                ]
             }
-
         });
-
 
         // ======================================
         // EFEITO LUMINOSO EXTERNO
         // ======================================
 
         map.addLayer({
-
-            id: 'sp-glow',
-
+            id: 'paises-glow',
             type: 'line',
-
-            source: 'sao-paulo-source',
-
+            source: 'paises-source',
             paint: {
-
-                'line-color': '#00BFFF',
-
+                'line-color': '#000',
                 'line-width': 9,
-
                 'line-blur': 5,
-
-                'line-opacity': 0
-
+                'line-opacity': [
+                    'case',
+                    ['boolean', ['feature-state', 'selected'], false],
+                    0.8,
+                    0
+                ]
             }
-
         });
-
 
         // ======================================
         // FUNÇÃO DE SELEÇÃO
         // ======================================
 
-        function destacarSaoPaulo(selecionado) {
+        function selecionarPais(novoId) {
+            // Remove o destaque do país anterior, se houver
+            if (paisSelecionadoId !== null) {
+                map.setFeatureState(
+                    { source: 'paises-source', id: paisSelecionadoId },
+                    { selected: false }
+                );
+            }
 
-            estadoSelecionado = selecionado;
+            paisSelecionadoId = novoId;
 
-
-            // Preenchimento translúcido
-
-            map.setPaintProperty(
-                'sp-fill',
-                'fill-opacity',
-                selecionado ? 0.32 : 0
-            );
-
-
-            // Contorno luminoso
-
-            map.setPaintProperty(
-                'sp-outline',
-                'line-opacity',
-                selecionado ? 1 : 0
-            );
-
-
-            // Brilho externo
-
-            map.setPaintProperty(
-                'sp-glow',
-                'line-opacity',
-                selecionado ? 0.8 : 0
-            );
-
+            // Aplica o destaque no novo país clicado
+            if (paisSelecionadoId !== null) {
+                map.setFeatureState(
+                    { source: 'paises-source', id: paisSelecionadoId },
+                    { selected: true }
+                );
+            }
         }
 
-
         // ======================================
-        // CLIQUE DENTRO DE SÃO PAULO
-        // ======================================
-
-        map.on('click', 'sp-fill', () => {
-
-            destacarSaoPaulo(true);
-
-        });
-
-
-        // ======================================
-        // CLIQUE FORA DO ESTADO
+        // EVENTO DE CLIQUE NO MAPA
         // ======================================
 
         map.on('click', (evento) => {
+            const { lng, lat } = evento.lngLat;
+            console.log(`Latitude: ${lat} | Longitude: ${lng}`);
 
-            const elementos = map.queryRenderedFeatures(
-                evento.point,
-                {
-                    layers: ['sp-fill']
-                }
-            );
+            const elementos = map.queryRenderedFeatures(evento.point, {
+                layers: ['paises-fill']
+            });
 
-
-            // Se clicou fora do território,
-            // remove o destaque.
-
-            if (elementos.length === 0 && estadoSelecionado) {
-
-                destacarSaoPaulo(false);
-
+            if (elementos.length > 0) {
+                const paisClicado = elementos[0];
+                console.log('País selecionado:', paisClicado.properties.ADMIN || paisClicado.properties.name);
+                selecionarPais(paisClicado.id);
+            } else {
+                // Clicou no oceano / fora de qualquer país: limpa o destaque
+                selecionarPais(null);
             }
-
         });
-
 
         // ======================================
         // CURSOR INTERATIVO
         // ======================================
 
-        map.on('mouseenter', 'sp-fill', () => {
-
+        map.on('mouseenter', 'paises-fill', () => {
             map.getCanvas().style.cursor = 'pointer';
-
         });
 
-
-        map.on('mouseleave', 'sp-fill', () => {
-
+        map.on('mouseleave', 'paises-fill', () => {
             map.getCanvas().style.cursor = '';
-
         });
 
+        console.log('Mapa interativo de países carregado!');
 
-        console.log('Mapa de São Paulo carregado!');
-
-    }
-
-    catch (erro) {
-
-        console.error(
-            'Erro ao carregar o limite de São Paulo:',
-            erro
-        );
-
+    } catch (erro) {
+        console.error('Erro ao carregar os limites dos países:', erro);
     }
 
 });
+
+
+        // ======================================
+        // REMOVE CONTROLADORES DA TELA
+        // ======================================
+
+document.querySelector('.maplibregl-ctrl-top-right').style.display = 'none';
+document.querySelector('.maplibregl-control-container').style.display = 'none';
 
 </script>
 
