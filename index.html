@@ -1,351 +1,1544 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-    <title>Mapa Interativo - Destaque de Países</title>
+    <title>SEPS - Globo Terrestre 3D Interativo | Missão NISAR & Inteligência Climática</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/maplibre-gl@6.18.0/dist/maplibre-gl.css"
-    />
+    <!-- MapLibre GL CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.18.0/dist/maplibre-gl.css" />
 
     <style>
-        html, body, #map {
-            width: 100%;
-            height: 100%;
+        * {
             margin: 0;
             padding: 0;
-            overflow: hidden;
+            box-sizing: border-box;
+            user-select: none;
         }
 
+        html,
         body {
-            background: #000;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000000;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            color: #e2e8f0;
+        }
+
+        /* Fundo Espacial Estrelado Escuro, Discreto e 100% Branco */
+        #space-starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            background: #000000;
         }
 
         #map {
             position: absolute;
             inset: 0;
+            z-index: 1;
+            background: transparent !important;
         }
 
         .maplibregl-canvas {
             cursor: grab;
+            background: transparent !important;
         }
 
         .maplibregl-canvas:active {
             cursor: grabbing;
-            z-index: 200;
+        }
+
+        /* ========================================================
+           MENU LATERAL À DIREITA (TOTALMENTE FIXO E GRUDADO NA BORDA)
+           ======================================================== */
+        #sidebar-right {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 390px;
+            height: 100vh;
+            max-width: 100vw;
+            background: rgba(4, 9, 20, 0.95);
+            border-left: 1px solid rgba(70, 150, 250, 0.28);
+            border-right: none !important;
+            border-top: none !important;
+            border-bottom: none !important;
+            border-radius: 0 !important;
+            backdrop-filter: blur(25px);
+            box-shadow: -12px 0 45px rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            z-index: 30;
+            overflow: hidden;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+        }
+
+        #sidebar-right.collapsed {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #sidebar-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 25;
+            background: rgba(8, 18, 38, 0.92);
+            border: 1px solid rgba(80, 160, 255, 0.45);
+            color: #93c5fd;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        #sidebar-toggle-btn:hover {
+            background: #1d4ed8;
+            color: #fff;
+            transform: scale(1.08);
+        }
+
+        .sidebar-header {
+            padding: 20px 22px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(10, 18, 36, 0.6);
+        }
+
+        .sidebar-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #60a5fa;
+            letter-spacing: 0.5px;
+        }
+
+        .close-sidebar-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 22px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+            border-radius: 6px;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .close-sidebar-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-content {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: rgba(80, 160, 255, 0.25);
+            border-radius: 4px;
+        }
+
+        /* Card de Destaque */
+        .info-card {
+            background: rgba(12, 22, 42, 0.65);
+            border: 1px solid rgba(80, 160, 255, 0.2);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .status-badge.normal {
+            background: rgba(56, 189, 248, 0.18);
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            color: #38bdf8;
+        }
+
+        .status-badge.alert {
+            background: rgba(239, 68, 68, 0.25);
+            border: 1px solid rgba(239, 68, 68, 0.6);
+            color: #f87171;
+            animation: pulseAlert 2s infinite;
+        }
+
+        @keyframes pulseAlert {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.5);
+            }
+        }
+
+        .location-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 3px;
+        }
+
+        .location-subtitle {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .coordinates-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: rgba(3, 8, 18, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            margin-top: 8px;
+        }
+
+        .coord-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .coord-label {
+            font-size: 10px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .coord-value {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #4ade80;
+            margin-top: 2px;
+        }
+
+        /* Subtítulos mais simples e sucintos */
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #93c5fd;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Curiosidades Científicas Sucintas */
+        .curiosity-item {
+            background: rgba(10, 20, 36, 0.7);
+            border-left: 3px solid #3b82f6;
+            padding: 8px 12px;
+            border-radius: 0 8px 8px 0;
+            font-size: 12px;
+            line-height: 1.45;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+
+        .curiosity-item.alert-border {
+            border-left-color: #ef4444;
+            background: rgba(40, 12, 18, 0.55);
+        }
+
+        .curiosity-item strong {
+            color: #f1f5f9;
+            display: block;
+            margin-bottom: 2px;
+            font-size: 12px;
+        }
+
+        /* Notícias Ambientais */
+        .news-item {
+            background: rgba(12, 22, 42, 0.65);
+            border-radius: 8px;
+            padding: 9px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 6px;
+        }
+
+        .news-tag {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            margin-bottom: 3px;
+        }
+
+        .news-tag.radar {
+            background: rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+        }
+
+        .news-tag.alert-tag {
+            background: rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+        }
+
+        .news-tag.eco {
+            background: rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        .news-title {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #f8fafc;
+            line-height: 1.35;
+        }
+
+        .news-meta {
+            font-size: 9.5px;
+            color: #64748b;
+            margin-top: 3px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Dicas de Proteção */
+        .protection-box {
+            background: rgba(15, 18, 32, 0.7);
+            border-radius: 8px;
+            padding: 9px 12px;
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            margin-bottom: 6px;
+        }
+
+        .protection-box.alert-mode {
+            border-color: rgba(239, 68, 68, 0.4);
+            background: rgba(32, 10, 16, 0.65);
+        }
+
+        .protection-tip {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 11.5px;
+            color: #cbd5e1;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .protection-tip:last-child {
+            margin-bottom: 0;
+        }
+
+        .protection-tip span.icon {
+            font-size: 13px;
+            line-height: 1;
+        }
+
+        /* ========================================================
+           MENU INFERIOR TRANSLÚCIDO E ARRASTÁVEL
+           ======================================================== */
+        #bottom-panel {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 720px;
+            max-width: calc(100vw - 30px);
+            background: rgba(5, 10, 22, 0.85);
+            border: 1px solid rgba(80, 160, 255, 0.32);
+            border-radius: 16px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+            z-index: 25;
+            padding: 6px 14px 10px;
+            touch-action: none;
+            transition: box-shadow 0.2s;
+        }
+
+        #bottom-panel:active {
+            box-shadow: 0 12px 45px rgba(0, 0, 0, 0.95), 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Alça sem texto, apenas indicador sutil de arraste */
+        .drag-handle {
+            width: 100%;
+            padding: 6px 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 8px;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .drag-indicator {
+            width: 36px;
+            height: 4px;
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+
+        .drag-handle:hover .drag-indicator {
+            background: rgba(147, 197, 253, 0.7);
+        }
+
+        .controls-grid {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ctrl-btn {
+            background: rgba(12, 22, 42, 0.75);
+            border: 1px solid rgba(80, 160, 255, 0.22);
+            color: #e2e8f0;
+            padding: 6px 11px;
+            border-radius: 8px;
+            font-size: 11.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .ctrl-btn:hover {
+            background: rgba(37, 99, 235, 0.4);
+            border-color: rgba(96, 165, 250, 0.6);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .ctrl-btn.active {
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            border-color: #60a5fa;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(6, 12, 26, 0.65);
+            padding: 4px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 10.5px;
+            color: #94a3b8;
+        }
+
+        .slider-group input[type="range"] {
+            width: 60px;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+
+        .live-coords-hud {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 10.5px;
+            color: #38bdf8;
+            background: rgba(2, 5, 14, 0.9);
+            padding: 5px 9px;
+            border-radius: 6px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            white-space: nowrap;
+        }
+
+        /* Satélite NISAR 3D e Tag com Hover */
+        .nisar-marker-container {
+            position: relative;
+            width: 54px;
+            height: 64px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .nisar-marker-container:hover {
+            transform: scale(1.25);
+        }
+
+        .nisar-canvas-3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+            filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+        }
+
+        /* O texto 'NISAR' fica invisível por padrão e aparece apenas no hover */
+        .nisar-orbit-tag {
+            position: absolute;
+            bottom: -16px;
+            left: 50%;
+            background: rgba(4, 9, 22, 0.92);
+            border: 1px solid #38bdf8;
+            color: #93c5fd;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateX(-50%) translateY(3px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .nisar-marker-container:hover .nisar-orbit-tag {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @keyframes markerPulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            100% {
+                transform: scale(2.6);
+                opacity: 0;
+            }
+        }
+
+        @media(max-width: 850px) {
+            #bottom-panel {
+                width: 95vw;
+                padding: 6px 10px 10px;
+            }
+
+            .controls-grid {
+                justify-content: center;
+            }
+
+            #sidebar-right {
+                width: 100vw;
+            }
         }
     </style>
 </head>
 
 <body>
-   
-    <div style="background-color: rgba(8, 37, 134, 0.322); display: none; width: 300px; height: 100%; position: fixed; right: 0px; z-index: 10;">
-        <div>asd</div>
-    </div>
 
+    <!-- Fundo Espacial Estrelado -->
+    <canvas id="space-starfield"></canvas>
+
+    <!-- Mapa 3D Globo -->
     <div id="map"></div>
 
-<script type="module">
+    <button id="sidebar-toggle-btn" title="Abrir Menu de Informações">🛰️</button>
 
-import * as maplibregl from
-'https://unpkg.com/maplibre-gl@6.18.0/dist/maplibre-gl.mjs';
+    <!-- ========================================================
+         MENU LATERAL À DIREITA (FIXO NA BORDA)
+         ======================================================== -->
+    <aside id="sidebar-right">
+        <div class="sidebar-header">
+            <div class="sidebar-header-left">
+                <span style="font-size: 18px;">🛰️</span>
+                <h2>Menu de Informações</h2>
+            </div>
+            <button class="close-sidebar-btn" id="close-sidebar" title="Fechar Menu">×</button>
+        </div>
 
+        <div class="sidebar-content">
+            <!-- Card Principal com Coordenadas e Status -->
+            <div class="info-card">
+                <div id="status-badge-container">
+                    <span class="status-badge alert" id="loc-status-badge">🔴 REQUER ATENÇÃO (RISCO AMBIENTAL)</span>
+                </div>
+                <div class="location-title" id="loc-name">Brasil</div>
+                <div class="location-subtitle" id="loc-region">América do Sul</div>
+                <p id="loc-desc" style="font-size: 12px; color: #cbd5e1; margin-top: 4px; line-height: 1.4;">
+                    Monitoramento prioritário de cobertura florestal e focos de queimadas via radar de abertura
+                    sintética (SAR).
+                </p>
 
-// ==========================================
-// CONFIGURAÇÃO DO MAPA
-// ==========================================
+                <div class="coordinates-box">
+                    <div class="coord-item">
+                        <span class="coord-label">Latitude</span>
+                        <span class="coord-value" id="coord-lat">-15.7900° S</span>
+                    </div>
+                    <div class="coord-item">
+                        <span class="coord-label">Longitude</span>
+                        <span class="coord-value" id="coord-lng">-47.8800° W</span>
+                    </div>
+                    <div class="coord-item"
+                        style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 5px; margin-top: 3px;">
+                        <span class="coord-label">Console (MapLibre e.lngLat)</span>
+                        <span class="coord-value" id="coord-raw" style="color: #67e8f9; font-size: 11px;">lat: -15.7900,
+                            lng: -47.8800</span>
+                    </div>
+                </div>
 
-const map = new maplibregl.Map({
-    container: 'map',
-    zoom: 2.2,
-    center: [-46.6333, -15.0],
-    pitch: 0,
-    maxPitch: 85
-});
+                <button class="ctrl-btn" id="btn-flyto"
+                    style="width: 100%; margin-top: 10px; justify-content: center; background: rgba(37,99,235,0.4); border-color:#3b82f6;">
+                    🎯 Centralizar Visão Neste Ponto
+                </button>
+            </div>
 
+            <!-- Curiosidades Sucintas -->
+            <div>
+                <div class="section-label">
+                    <span>💡</span> Curiosidades
+                </div>
+                <div id="curiosities-container">
+                    <!-- Preenchido via JS com frases concisas -->
+                </div>
+            </div>
 
-// ==========================================
-// CONFIGURAÇÃO DO ESTILO
-// ==========================================
+            <!-- Notícias -->
+            <div>
+                <div class="section-label">
+                    <span>📰</span> Notícias
+                </div>
+                <div id="news-container">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+            </div>
 
-map.setStyle(
-    'https://tiles.openfreemap.org/styles/bright',
-    {
-        transformStyle: (previousStyle, nextStyle) => {
+            <!-- Dicas de Proteção -->
+            <div>
+                <div class="section-label">
+                    <span>🛡️</span> Dicas de Proteção
+                </div>
+                <div id="protection-container">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+            </div>
+        </div>
+    </aside>
 
-            nextStyle.projection = {
-                type: 'globe'
-            };
+    <!-- ========================================================
+         MENU INFERIOR TRANSLÚCIDO E ARRASTÁVEL
+         ======================================================== -->
+    <div id="bottom-panel">
+        <div class="drag-handle" id="panel-drag-handle" title="Arraste para reposicionar o painel">
+            <span class="drag-indicator"></span>
+        </div>
 
-            nextStyle.sources = {
-                ...nextStyle.sources,
+        <div class="controls-grid">
+            <!-- Rotação Automática -->
+            <div class="control-group">
+                <button class="ctrl-btn" id="btn-toggle-rotate" title="Iniciar/Pausar auto-rotação">
+                    <span id="rotate-icon">▶</span> Rotação
+                </button>
+                <div class="slider-group">
+                    <span>Velocidade</span>
+                    <input type="range" id="rotate-speed" min="0.1" max="2.0" step="0.1" value="0.5">
+                </div>
+            </div>
 
-                satelliteSource: {
-                    type: 'raster',
-                    tiles: [
-                        'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg'
-                    ],
-                    tileSize: 256
-                },
+            <!-- Camadas Visuais -->
+            <div class="control-group">
+                <button class="ctrl-btn active" id="btn-toggle-satellite" title="Alternar camada de satélite">
+                    🛰️ Satélite
+                </button>
+                <button class="ctrl-btn active" id="btn-toggle-terrain" title="Alternar elevação 3D do relevo">
+                    🏔️ Relevo 3D
+                </button>
+                <button class="ctrl-btn active" id="btn-toggle-pitch" title="Alternar ângulo de inclinação orbital">
+                    📐 Inclinação 3D
+                </button>
+            </div>
 
-                terrainSource: {
-                    type: 'raster-dem',
-                    url: 'https://tiles.mapterhorn.com/tilejson.json'
-                },
+            <!-- Focar no Satélite NISAR (Apenas NISAR) -->
+            <div class="control-group">
+                <button class="ctrl-btn" id="btn-focus-nisar"
+                    style="background: rgba(234, 179, 8, 0.25); border-color: #eab308; color: #fde047;"
+                    title="Rastrear e focar no satélite NISAR">
+                    NISAR
+                </button>
+            </div>
 
-                hillshadeSource: {
-                    type: 'raster-dem',
-                    url: 'https://tiles.mapterhorn.com/tilejson.json'
-                }
-            };
+            <!-- Zoom e Reset -->
+            <div class="control-group">
+                <button class="ctrl-btn" id="btn-zoom-in" title="Aproximar">🔍 +</button>
+                <button class="ctrl-btn" id="btn-zoom-out" title="Afastar">🔍 -</button>
+                <button class="ctrl-btn" id="btn-reset-view" title="Visão Padrão">🏠 Reset</button>
+            </div>
 
-            nextStyle.terrain = {
-                source: 'terrainSource',
-                exaggeration: 1
-            };
+            <!-- Coordenadas ao Vivo -->
+            <div class="live-coords-hud" id="hud-last-click">
+                Último Clique: Brasil (-15.79°, -47.88°)
+            </div>
+        </div>
+    </div>
 
-            nextStyle.sky = {
-                'atmosphere-blend': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    0, 1,
-                    2, 0
-                ]
-            };
+    <!-- Módulo MapLibre GL e Three.js para o Satélite NISAR -->
+    <script type="module">
+        import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.18.0/dist/maplibre-gl.mjs';
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 
-            nextStyle.layers.push({
-                id: 'hills',
-                type: 'hillshade',
-                source: 'hillshadeSource',
-                layout: {
-                    visibility: 'visible'
-                },
-                paint: {
-                    'hillshade-shadow-color': '#473B24'
-                }
+        // ========================================================
+        // 1. FUNDO ESTRELADO BEM ESCURO, DISCRETO E 100% BRANCO
+        // ========================================================
+        const starCanvas = document.getElementById('space-starfield');
+        const starCtx = starCanvas.getContext('2d');
+        let stars = [];
+
+        function resizeStarCanvas() {
+            starCanvas.width = window.innerWidth;
+            starCanvas.height = window.innerHeight;
+            initStars();
+        }
+
+        function initStars() {
+            stars = [];
+            // Densidade equilibrada de estrelas
+            const count = Math.floor((starCanvas.width * starCanvas.height) / 2200);
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * starCanvas.width,
+                    y: Math.random() * starCanvas.height,
+                    radius: Math.random() * 0.65 + 0.2, // Pontos menores e bem discretos
+                    alpha: Math.random() * 0.5 + 0.15,   // Intensidade luminosa suave
+                    speed: Math.random() * 0.01 + 0.003
+                });
+            }
+        }
+
+        function drawStars() {
+            starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+
+            // Fundo preto puro espacial
+            starCtx.fillStyle = '#000000';
+            starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
+
+            const now = Date.now() * 0.001;
+            stars.forEach((s, idx) => {
+                const twinkle = Math.sin(now * 1.5 + idx) * 0.12;
+                const alpha = Math.max(0.08, Math.min(0.65, s.alpha + twinkle));
+                starCtx.beginPath();
+                starCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                starCtx.fillStyle = '#ffffff'; // Apenas cor branca
+                starCtx.globalAlpha = alpha;
+                starCtx.fill();
             });
+            starCtx.globalAlpha = 1.0;
 
-            const firstRoadLayer = nextStyle.layers.find(
-                layer => layer['source-layer'] === 'transportation'
-            );
+            requestAnimationFrame(drawStars);
+        }
 
-            nextStyle.layers.splice(
-                nextStyle.layers.indexOf(firstRoadLayer),
-                0,
-                {
+        window.addEventListener('resize', resizeStarCanvas);
+        resizeStarCanvas();
+        drawStars();
+
+        // ========================================================
+        // 2. BASE DE CONHECIMENTO: SUCINTO, NOTÍCIAS & DEFESA CIVIL
+        // ========================================================
+        const alertCountries = {
+            'Brasil': {
+                level: 'alert',
+                statusText: '🔴 REQUER ATENÇÃO (DESMATAMENTO & QUEIMADAS)',
+                shortDesc: 'Vigilância contínua de desmatamento na Amazônia/Cerrado e cheias na Bacia do Prata.',
+                curiosities: [
+                    { title: 'Radar Banda L Sub-Copa', text: 'O sinal penetra a copa florestal para mapear solo e água mesmo sob chuva ou nuvens densas.' },
+                    { title: 'Rios Voadores', text: 'A evapotranspiração amazônica gera massas de vapor que regulam chuvas no Centro-Sul.' }
+                ],
+                news: [
+                    { tag: 'radar', tagClass: 'radar', title: 'NISAR detecta recuperação de biomassa e novas clareiras na Amazônia Ocidental.', date: 'Há 2 dias' },
+                    { tag: 'alerta', tagClass: 'alert-tag', title: 'Defesa Civil emite aviso preventivo para transbordamento de afluentes no Pantanal.', date: 'Há 4 horas' }
+                ],
+                protection: [
+                    { icon: '😷', text: '<strong>Em focos de fumaça:</strong> Use máscaras PFF2/N95 e feche janelas para evitar micropartículas.' },
+                    { icon: '🌊', text: '<strong>Áreas de várzea:</strong> Monitore réguas fluviais locais e evacue ao primeiro sinal de enxurrada.' }
+                ]
+            },
+            'Indonesia': {
+                level: 'alert',
+                statusText: '🔴 REQUER ATENÇÃO (SISMICIDADE & FLORESTAS DE TURFA)',
+                shortDesc: 'Monitoramento no Círculo de Fogo do Pacífico contra sismos, erupções e queima de turfeiras.',
+                curiosities: [
+                    { title: 'Detecção Térmica de Turfa', text: 'Sensores térmicos identificam queimas subterrâneas invisíveis a olho nu.' },
+                    { title: 'Interferometria Vulcânica', text: 'Radares InSAR medem o soerguimento de caldeiras antes de grandes erupções.' }
+                ],
+                news: [
+                    { tag: 'alerta', tagClass: 'alert-tag', title: 'Atividade sísmica elevada registrada no Estreito de Sunda por radares geodésicos.', date: 'Há 1 dia' },
+                    { tag: 'radar', tagClass: 'radar', title: 'Mapeamento de subsidência na costa norte de Jacarta indica afundamento de 4 cm/ano.', date: 'Há 3 dias' }
+                ],
+                protection: [
+                    { icon: '🚨', text: '<strong>Ao soar sirene de tsunami:</strong> Abandone a praia e suba para cotas acima de 30 metros.' },
+                    { icon: '🌋', text: '<strong>Alerta vulcânico:</strong> Mantenha água mineral vedada para evitar contaminação por cinzas.' }
+                ]
+            },
+            'Mozambique': {
+                level: 'alert',
+                statusText: '🔴 REQUER ATENÇÃO (INUNDAÇÕES & CICLONES)',
+                shortDesc: 'Vulnerabilidade a ciclones tropicais no Índico e cheias nos rios Limpopo e Incomati.',
+                curiosities: [
+                    { title: 'Reflexão Especular de Água', text: 'Áreas escuras nas imagens SAR indicam espelhos d\'água avançando sobre lavouras.' },
+                    { title: 'Passagens Orbitais Recorrentes', text: 'Satélites polares mapeiam rotas seguras de socorro a cada nova órbita.' }
+                ],
+                news: [
+                    { tag: 'alerta', tagClass: 'alert-tag', title: 'Boletim confirma estabilização das bacias dos rios Limpopo e Zambeze.', date: 'Hoje' },
+                    { tag: 'eco', tagClass: 'eco', title: 'Recuperação de manguezais costeiros mitiga a força de tempestades tropicais.', date: 'Há 5 dias' }
+                ],
+                protection: [
+                    { icon: '📦', text: '<strong>Kit de Emergência:</strong> Guarde documentos em sacos herméticos e mantenha água potável para 72h.' },
+                    { icon: '⚡', text: '<strong>Em alagamentos:</strong> Desligue o disjuntor geral para evitar curto-circuitos na rede submersa.' }
+                ]
+            },
+            'United States of America': {
+                level: 'alert',
+                statusText: '🔴 REQUER ATENÇÃO (INCÊNDIOS & TECTONISMO)',
+                shortDesc: 'Vigilância de megaincêndios no Oeste e sismicidade ativa na Falha de San Andreas.',
+                curiosities: [
+                    { title: 'Falha de San Andreas em 3D', text: 'Radares medem o deslizamento tectônico entre a placa do Pacífico e a Norte-Americana.' },
+                    { title: 'Altimetria de Furacões', text: 'Micro-ondas mapeiam o calor oceânico que abastece tempestades no Golfo.' }
+                ],
+                news: [
+                    { tag: 'radar', tagClass: 'radar', title: 'Imagens termais avaliam risco crítico de fogo na Califórnia após estiagem.', date: 'Há 6 horas' },
+                    { tag: 'alerta', tagClass: 'alert-tag', title: 'Alerta para temporada de tempestades severas na região central.', date: 'Há 2 dias' }
+                ],
+                protection: [
+                    { icon: '🧗', text: '<strong>Durante terremotos:</strong> Execute "Abaixar, Cobrir e Segurar" sob mesas sólidas.' },
+                    { icon: '💨', text: '<strong>Em áreas de incêndio:</strong> Mantenha zona de 10 metros livre de folhas secas ao redor da casa.' }
+                ]
+            },
+            'Australia': {
+                level: 'alert',
+                statusText: '🔴 REQUER ATENÇÃO (CALOR EXTREMO & CORAIS)',
+                shortDesc: 'Acompanhamento de estresse térmico na Grande Barreira e temporadas de bushfires.',
+                curiosities: [
+                    { title: 'Radiometria de Recifes', text: 'Detecta anomalias de temperatura da água que desencadeiam o branqueamento de corais.' },
+                    { title: 'Rastreamento de Aerossóis', text: 'Satélites monitoram plumas de fuligem que circulam por todo o Hemisfério Sul.' }
+                ],
+                news: [
+                    { tag: 'eco', tagClass: 'eco', title: 'Pesquisa orbital indica resiliência em setores mais profundos de corais em Queensland.', date: 'Há 1 dia' },
+                    { tag: 'alerta', tagClass: 'alert-tag', title: 'Bombeiros rurais mantêm proibição rigorosa de queimadas agrícolas no verão.', date: 'Há 3 dias' }
+                ],
+                protection: [
+                    { icon: '🔥', text: '<strong>Bushfires iminentes:</strong> Tenha rota de fuga definida e saia antecipadamente se recomendado.' },
+                    { icon: '💧', text: '<strong>Ondas de calor:</strong> Hidrate-se constantemente e evite exposição solar nas horas de pico.' }
+                ]
+            },
+            'Japan': {
+                level: 'alert',
+                statusText: '🔴 REQUER ATENÇÃO (SISMICIDADE CRÍTICA)',
+                shortDesc: 'Vigilância contínua na confluência de quatro placas tectônicas ativas.',
+                curiosities: [
+                    { title: 'Rede Geodésica Espacial', text: 'Mais de 1.300 estações GPS e satélites medem movimentos crustais milimétricos.' },
+                    { title: 'Mapeamento de Liquefação', text: 'Radares SAR apontam solos arenosos instáveis em aterros costeiros e portos.' }
+                ],
+                news: [
+                    { tag: 'radar', tagClass: 'radar', title: 'Análise de radar pós-sismo quantifica deslocamento de 2.1 cm na Península de Noto.', date: 'Há 2 dias' }
+                ],
+                protection: [
+                    { icon: '📱', text: '<strong>Ao soar alerta no celular (EEW):</strong> Interrompa caminhada e proteja a cabeça imediatamente.' },
+                    { icon: '🎒', text: '<strong>Mochila de Emergência:</strong> Mantenha lanterna, rádio a dínamo e apito sempre acessíveis.' }
+                ]
+            }
+        };
+
+        const normalCountryData = {
+            statusText: '🔵 SITUAÇÃO REGULAR / ESTÁVEL',
+            shortDesc: 'Território nacional sem registro de anomalias geofísicas ou incêndios descontrolados no momento.',
+            curiosities: [
+                { title: 'Monitoramento Multiespectral', text: 'Satélites Landsat e Sentinel avaliam a saúde da vegetação a cada 5 dias.' },
+                { title: 'Estabilidade Geodinâmica', text: 'Baixa sismicidade e monitoramento contínuo de reservatórios hídricos.' }
+            ],
+            news: [
+                { tag: 'eco', tagClass: 'eco', title: 'Dados orbitais indicam estabilidade nos mananciais hídricos e na cobertura vegetal.', date: 'Esta semana' },
+                { tag: 'radar', tagClass: 'radar', title: 'Satélites mantêm vigilância preventiva ao longo das fronteiras ecológicas.', date: 'Há 4 dias' }
+            ],
+            protection: [
+                { icon: '💧', text: '<strong>Consumo Consciente:</strong> Pratique o uso racional da água e descarte correto de resíduos.' },
+                { icon: '🌡️', text: '<strong>Prevenção Climática:</strong> Acompanhe previsões meteorológicas e evite queima de resíduos ao ar livre.' }
+            ]
+        };
+
+        // ========================================================
+        // 3. INICIALIZAÇÃO DO MAPLIBRE GL (GLOBO 3D)
+        // ========================================================
+        const map = new maplibregl.Map({
+            container: 'map',
+            zoom: 2.3,
+            center: [-47.88, -15.79],
+            pitch: 25,
+            maxPitch: 85
+        });
+
+        map.setStyle('https://tiles.openfreemap.org/styles/bright', {
+            transformStyle: (previousStyle, nextStyle) => {
+                nextStyle.projection = { type: 'globe' };
+
+                // Deixa o fundo do mapa transparente para o espaço estrelado aparecer com clareza
+                nextStyle.layers.forEach(l => {
+                    if (l.type === 'background') {
+                        l.paint = { 'background-opacity': 0 };
+                    }
+                });
+
+                nextStyle.sources = {
+                    ...nextStyle.sources,
+                    satelliteSource: {
+                        type: 'raster',
+                        tiles: ['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg'],
+                        tileSize: 256
+                    },
+                    terrainSource: {
+                        type: 'raster-dem',
+                        url: 'https://tiles.mapterhorn.com/tilejson.json'
+                    },
+                    hillshadeSource: {
+                        type: 'raster-dem',
+                        url: 'https://tiles.mapterhorn.com/tilejson.json'
+                    }
+                };
+
+                nextStyle.terrain = { source: 'terrainSource', exaggeration: 1.2 };
+                nextStyle.sky = {
+                    'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 0.75, 3, 0.15]
+                };
+
+                nextStyle.layers.push({
+                    id: 'hills',
+                    type: 'hillshade',
+                    source: 'hillshadeSource',
+                    layout: { visibility: 'visible' },
+                    paint: { 'hillshade-shadow-color': '#2a1e12' }
+                });
+
+                const firstRoad = nextStyle.layers.find(l => l['source-layer'] === 'transportation');
+                const idx = firstRoad ? nextStyle.layers.indexOf(firstRoad) : 0;
+                nextStyle.layers.splice(idx, 0, {
                     id: 'satellite',
                     type: 'raster',
                     source: 'satelliteSource',
-                    layout: {
-                        visibility: 'visible'
-                    },
-                    paint: {
-                        'raster-opacity': 1
-                    }
-                }
+                    layout: { visibility: 'visible' },
+                    paint: { 'raster-opacity': 1 }
+                });
+
+                return nextStyle;
+            }
+        });
+
+        // ========================================================
+        // 4. MODELAGEM 3D FIEL DO SATÉLITE NISAR (NASA / ISRO)
+        // ========================================================
+        function createNisar3DElement() {
+            const container = document.createElement('div');
+            container.className = 'nisar-marker-container';
+
+            const canvas = document.createElement('canvas');
+            canvas.className = 'nisar-canvas-3d';
+            canvas.width = 110;
+            canvas.height = 130;
+            container.appendChild(canvas);
+
+            // Tag com nome 'NISAR' (aparece apenas no hover via CSS)
+            const tag = document.createElement('div');
+            tag.className = 'nisar-orbit-tag';
+            tag.textContent = 'NISAR';
+            container.appendChild(tag);
+
+            // Three.js Renderizador do Satélite
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+            camera.position.set(2.2, 1.8, 3.2);
+            camera.lookAt(0, 0.2, 0);
+
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            renderer.setSize(110, 110);
+            renderer.setPixelRatio(window.devicePixelRatio || 1);
+
+            const amb = new THREE.AmbientLight(0xffffff, 1.25);
+            scene.add(amb);
+            const sun = new THREE.DirectionalLight(0xffffff, 2.5);
+            sun.position.set(3, 4, 2);
+            scene.add(sun);
+
+            const nisarGroup = new THREE.Group();
+            scene.add(nisarGroup);
+
+            // 1. Corpo Dourado (Mylar/Foil)
+            const busMat = new THREE.MeshStandardMaterial({
+                color: 0xf59e0b,
+                metalness: 0.85,
+                roughness: 0.25
+            });
+            const bus = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.45), busMat);
+            nisarGroup.add(bus);
+
+            // 2. Painéis Solares
+            const solarMat = new THREE.MeshStandardMaterial({
+                color: 0x1e3a8a,
+                roughness: 0.3,
+                metalness: 0.6
+            });
+            const wingLeft = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.02, 0.22), solarMat);
+            wingLeft.position.set(-0.55, 0, 0);
+            nisarGroup.add(wingLeft);
+
+            const wingRight = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.02, 0.22), solarMat);
+            wingRight.position.set(0.55, 0, 0);
+            nisarGroup.add(wingRight);
+
+            // 3. Braço Articulado Longo de Fibra de Carbono (Boom)
+            const boomMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 });
+            const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.1, 8), boomMat);
+            boom.position.set(0.2, 0.6, -0.2);
+            boom.rotation.z = -Math.PI * 0.18;
+            boom.rotation.x = Math.PI * 0.12;
+            nisarGroup.add(boom);
+
+            // 4. Antena Refletora Cilíndrica de Malha (12m Mesh Drum)
+            const reflectorGroup = new THREE.Group();
+            reflectorGroup.position.set(0.38, 1.15, -0.32);
+            reflectorGroup.rotation.x = Math.PI * 0.35;
+            reflectorGroup.rotation.y = Math.PI * 0.15;
+
+            const meshDiskMat = new THREE.MeshStandardMaterial({
+                color: 0x94a3b8,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.85
+            });
+            const disk = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.18, 20, 3, true), meshDiskMat);
+            reflectorGroup.add(disk);
+
+            const dishBase = new THREE.Mesh(
+                new THREE.CircleGeometry(0.53, 20),
+                new THREE.MeshBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
             );
+            dishBase.rotation.x = Math.PI / 2;
+            dishBase.position.y = -0.05;
+            reflectorGroup.add(dishBase);
 
-            return nextStyle;
-        }
-    }
-);
+            nisarGroup.add(reflectorGroup);
 
+            function renderNisar() {
+                nisarGroup.rotation.y += 0.015;
+                renderer.render(scene, camera);
+                requestAnimationFrame(renderNisar);
+            }
+            renderNisar();
 
-// ==========================================
-// CONTROLES
-// ==========================================
-
-map.addControl(
-    new maplibregl.NavigationControl({
-        visualizePitch: true,
-        showZoom: true,
-        showCompass: true
-    })
-);
-
-map.addControl(
-    new maplibregl.GlobeControl()
-);
-
-map.addControl(
-    new maplibregl.TerrainControl({
-        source: 'terrainSource',
-        exaggeration: 1
-    })
-);
-
-
-// ==========================================
-// DESTAQUE INTERATIVO - PAÍSES
-// ==========================================
-
-let paisSelecionadoId = null;
-
-map.on('load', async () => {
-
-    try {
-        // GeoJSON global com os limites dos países
-        const geojsonURL =
-            'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
-
-        const resposta = await fetch(geojsonURL);
-
-        if (!resposta.ok) {
-            throw new Error('Não foi possível carregar o GeoJSON dos países.');
+            return container;
         }
 
-        const paises = await resposta.json();
+        // ========================================================
+        // 5. ÓRBITA DO NISAR EM TEMPO REAL
+        // ========================================================
+        const nisarElement = createNisar3DElement();
+        const nisarMarker = new maplibregl.Marker({
+            element: nisarElement,
+            anchor: 'center'
+        }).setLngLat([0, 0]).addTo(map);
 
-        // ======================================
-        // FONTE GEOJSON
-        // ======================================
+        let orbitTime = 0;
+        const orbitInclination = 98.4 * (Math.PI / 180);
 
-        map.addSource('paises-source', {
-            type: 'geojson',
-            data: paises,
-            generateId: true // Cria ID único automático para cada país
+        function updateNisarOrbit() {
+            orbitTime += 0.0035;
+
+            const u = orbitTime;
+            const latRad = Math.asin(Math.sin(orbitInclination) * Math.sin(u));
+            const lat = latRad * (180 / Math.PI);
+
+            let lng = (Math.atan2(Math.cos(orbitInclination) * Math.sin(u), Math.cos(u)) * (180 / Math.PI)) - (orbitTime * 28);
+            lng = ((lng + 180) % 360 + 360) % 360 - 180;
+
+            nisarMarker.setLngLat([lng, lat]);
+            requestAnimationFrame(updateNisarOrbit);
+        }
+        updateNisarOrbit();
+
+        nisarElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const pos = nisarMarker.getLngLat();
+            exibirDadosNISAR(pos.lng, pos.lat);
+            map.flyTo({ center: [pos.lng, pos.lat], zoom: 3.8, pitch: 45, essential: true });
         });
 
-        // ======================================
-        // PREENCHIMENTO DO PAÍS (INVISÍVEL ATÉ O CLIQUE)
-        // ======================================
-
-        map.addLayer({
-            id: 'paises-fill',
-            type: 'fill',
-            source: 'paises-source',
-            paint: {
-                'fill-color': '#00CFFF',
-                'fill-opacity': [
-                    'case',
-                    ['boolean', ['feature-state', 'selected'], false],
-                    0.32,
-                    0
-                ]
-            }
+        document.getElementById('btn-focus-nisar').addEventListener('click', () => {
+            const pos = nisarMarker.getLngLat();
+            exibirDadosNISAR(pos.lng, pos.lat);
+            map.flyTo({ center: [pos.lng, pos.lat], zoom: 4.2, pitch: 50, essential: true });
         });
 
-        // ======================================
-        // CONTORNO DO PAÍS
-        // ======================================
+        function exibirDadosNISAR(lng, lat) {
+            locNameEl.textContent = 'Satélite NISAR';
+            locRegionEl.textContent = 'NASA / ISRO';
+            locStatusBadge.className = 'status-badge normal';
+            locStatusBadge.textContent = '🛰️ EM OPERAÇÃO NOMINAL';
+            locDescEl.textContent = 'Radar espacial de dupla frequência (Banda L e S) mapeando a superfície terrestre a cada 12 dias.';
 
-        map.addLayer({
-            id: 'paises-outline',
-            type: 'line',
-            source: 'paises-source',
-            paint: {
-                'line-color': '#00DFFF',
-                'line-width': 3,
-                'line-blur': 0.5,
-                'line-opacity': [
-                    'case',
-                    ['boolean', ['feature-state', 'selected'], false],
-                    1,
-                    0
-                ]
-            }
-        });
+            coordLatEl.textContent = `${lat.toFixed(4)}° (${formatDMS(lat, true)})`;
+            coordLngEl.textContent = `${lng.toFixed(4)}° (${formatDMS(lng, false)})`;
+            coordRawEl.textContent = `lat: ${lat.toFixed(4)}, lng: ${lng.toFixed(4)}`;
 
-        // ======================================
-        // EFEITO LUMINOSO EXTERNO
-        // ======================================
+            curiositiesContainer.innerHTML = `
+                <div class="curiosity-item">
+                    <strong>Radar Dupla Frequência</strong>
+                    Banda L (NASA - 24 cm) penetra a copa da floresta; Banda S (ISRO - 9 cm) monitora plantios e gelo.
+                </div>
+                <div class="curiosity-item">
+                    <strong>Refletor de 12 Metros</strong>
+                    A maior antena telada já lançada pela NASA para observação contínua da biosfera.
+                </div>
+            `;
 
-        map.addLayer({
-            id: 'paises-glow',
-            type: 'line',
-            source: 'paises-source',
-            paint: {
-                'line-color': '#000',
-                'line-width': 9,
-                'line-blur': 5,
-                'line-opacity': [
-                    'case',
-                    ['boolean', ['feature-state', 'selected'], false],
-                    0.8,
-                    0
-                ]
-            }
-        });
+            newsContainer.innerHTML = `
+                <div class="news-item">
+                    <span class="news-tag radar">Telemetria</span>
+                    <div class="news-title">Altitude de 747 km e velocidade orbital de 7,5 km/s operando normalmente.</div>
+                    <div class="news-meta"><span>NASA/JPL</span><span>Ao Vivo</span></div>
+                </div>
+            `;
 
-        // ======================================
-        // FUNÇÃO DE SELEÇÃO
-        // ======================================
+            protectionContainer.innerHTML = `
+                <div class="protection-box">
+                    <div class="protection-tip">
+                        <span class="icon">📡</span>
+                        <span><strong>Dados Abertos:</strong> Imagens de radar disponibilizadas gratuitamente para auxílio a desastres naturais.</span>
+                    </div>
+                </div>
+            `;
 
-        function selecionarPais(novoId) {
-            // Remove o destaque do país anterior, se houver
-            if (paisSelecionadoId !== null) {
-                map.setFeatureState(
-                    { source: 'paises-source', id: paisSelecionadoId },
-                    { selected: false }
-                );
-            }
-
-            paisSelecionadoId = novoId;
-
-            // Aplica o destaque no novo país clicado
-            if (paisSelecionadoId !== null) {
-                map.setFeatureState(
-                    { source: 'paises-source', id: paisSelecionadoId },
-                    { selected: true }
-                );
-            }
+            sidebar.classList.remove('collapsed');
+            sidebarToggleBtn.style.display = 'none';
         }
 
-        // ======================================
-        // EVENTO DE CLIQUE NO MAPA
-        // ======================================
+        // ========================================================
+        // 6. ELEMENTOS DA INTERFACE (SIDEBAR & BOTTOM PANEL)
+        // ========================================================
+        const sidebar = document.getElementById('sidebar-right');
+        const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar');
 
-        map.on('click', (evento) => {
-            const { lng, lat } = evento.lngLat;
-            console.log(`Latitude: ${lat} | Longitude: ${lng}`);
+        const locNameEl = document.getElementById('loc-name');
+        const locRegionEl = document.getElementById('loc-region');
+        const locStatusBadge = document.getElementById('loc-status-badge');
+        const locDescEl = document.getElementById('loc-desc');
+        const coordLatEl = document.getElementById('coord-lat');
+        const coordLngEl = document.getElementById('coord-lng');
+        const coordRawEl = document.getElementById('coord-raw');
+        const curiositiesContainer = document.getElementById('curiosities-container');
+        const newsContainer = document.getElementById('news-container');
+        const protectionContainer = document.getElementById('protection-container');
+        const hudLastClick = document.getElementById('hud-last-click');
+        const btnFlyTo = document.getElementById('btn-flyto');
 
-            const elementos = map.queryRenderedFeatures(evento.point, {
-                layers: ['paises-fill']
+        let currentActiveTarget = { lat: -15.79, lng: -47.88 };
+
+        function formatDMS(deg, isLat) {
+            const absolute = Math.abs(deg);
+            const degrees = Math.floor(absolute);
+            const minutesNotTruncated = (absolute - degrees) * 60;
+            const minutes = Math.floor(minutesNotTruncated);
+            const seconds = Math.floor((minutesNotTruncated - minutes) * 60);
+            const direction = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+            return `${degrees}° ${minutes}' ${seconds}" ${direction}`;
+        }
+
+        const preciseClickMarkerEl = document.createElement('div');
+        preciseClickMarkerEl.innerHTML = `
+            <div style="position: relative; width: 20px; height: 20px;">
+                <div style="position: absolute; inset: 0; background: #ff0055; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px #ff0055;"></div>
+                <div style="position: absolute; inset: -5px; border: 2px solid #ff0055; border-radius: 50%; animation: markerPulse 1.5s infinite ease-out;"></div>
+            </div>
+        `;
+        const preciseClickMarker = new maplibregl.Marker({
+            element: preciseClickMarkerEl,
+            anchor: 'center'
+        });
+
+        function exibirDadosPais(nomePais, lat, lng) {
+            currentActiveTarget = { lat, lng };
+            const isAlert = alertCountries.hasOwnProperty(nomePais);
+            const data = isAlert ? alertCountries[nomePais] : normalCountryData;
+
+            locNameEl.textContent = nomePais;
+            locRegionEl.textContent = isAlert ? 'Área em Alerta' : 'Situação Estável';
+            locDescEl.textContent = data.shortDesc;
+
+            if (isAlert) {
+                locStatusBadge.className = 'status-badge alert';
+                locStatusBadge.textContent = data.statusText;
+            } else {
+                locStatusBadge.className = 'status-badge normal';
+                locStatusBadge.textContent = data.statusText;
+            }
+
+            coordLatEl.textContent = `${lat.toFixed(4)}° (${formatDMS(lat, true)})`;
+            coordLngEl.textContent = `${lng.toFixed(4)}° (${formatDMS(lng, false)})`;
+            coordRawEl.textContent = `lat: ${lat.toFixed(4)}, lng: ${lng.toFixed(4)}`;
+
+            hudLastClick.textContent = `${nomePais} (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`;
+            console.log(`Longitude: ${lng.toFixed(6)}, Latitude: ${lat.toFixed(6)}`);
+
+            // 1. Curiosidades
+            curiositiesContainer.innerHTML = '';
+            data.curiosities.forEach(c => {
+                const item = document.createElement('div');
+                item.className = `curiosity-item ${isAlert ? 'alert-border' : ''}`;
+                item.innerHTML = `<strong>${c.title}</strong>${c.text}`;
+                curiositiesContainer.appendChild(item);
             });
 
-            if (elementos.length > 0) {
-                const paisClicado = elementos[0];
-                console.log('País selecionado:', paisClicado.properties.ADMIN || paisClicado.properties.name);
-                selecionarPais(paisClicado.id);
-            } else {
-                // Clicou no oceano / fora de qualquer país: limpa o destaque
-                selecionarPais(null);
+            // 2. Notícias
+            newsContainer.innerHTML = '';
+            data.news.forEach(n => {
+                const item = document.createElement('div');
+                item.className = 'news-item';
+                item.innerHTML = `
+                    <span class="news-tag ${n.tagClass}">${n.tag}</span>
+                    <div class="news-title">${n.title}</div>
+                    <div class="news-meta"><span>NASA Earth Observatory</span><span>${n.date}</span></div>
+                `;
+                newsContainer.appendChild(item);
+            });
+
+            // 3. Dicas de Proteção
+            protectionContainer.innerHTML = '';
+            const box = document.createElement('div');
+            box.className = `protection-box ${isAlert ? 'alert-mode' : ''}`;
+            data.protection.forEach(p => {
+                box.innerHTML += `
+                    <div class="protection-tip">
+                        <span class="icon">${p.icon}</span>
+                        <span>${p.text}</span>
+                    </div>
+                `;
+            });
+            protectionContainer.appendChild(box);
+
+            sidebar.classList.remove('collapsed');
+            sidebarToggleBtn.style.display = 'none';
+        }
+
+        // ========================================================
+        // 7. CARREGAMENTO DOS PAÍSES (GEOJSON)
+        // ========================================================
+        let selectedCountryId = null;
+        let hoveredCountryId = null;
+
+        map.on('load', async () => {
+            try {
+                const geojsonURL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
+                const resposta = await fetch(geojsonURL);
+                if (!resposta.ok) throw new Error('Falha ao baixar limites dos países.');
+                const paises = await resposta.json();
+
+                paises.features.forEach((feature, index) => {
+                    const nome = feature.properties.ADMIN || feature.properties.name || '';
+                    feature.id = index + 1;
+                    feature.properties._isAlert = alertCountries.hasOwnProperty(nome);
+                });
+
+                map.addSource('paises-source', {
+                    type: 'geojson',
+                    data: paises,
+                    generateId: false
+                });
+
+                // Preenchimento (Vermelho se risco / Azul Claro se normal)
+                map.addLayer({
+                    id: 'paises-fill',
+                    type: 'fill',
+                    source: 'paises-source',
+                    paint: {
+                        'fill-color': [
+                            'case',
+                            ['boolean', ['get', '_isAlert'], false],
+                            '#ef4444',
+                            '#00d4ff'
+                        ],
+                        'fill-opacity': [
+                            'case',
+                            ['boolean', ['feature-state', 'selected'], false],
+                            0.45,
+                            ['boolean', ['feature-state', 'hover'], false],
+                            0.22,
+                            0
+                        ]
+                    }
+                });
+
+                // Contorno sempre visível
+                map.addLayer({
+                    id: 'paises-outline',
+                    type: 'line',
+                    source: 'paises-source',
+                    paint: {
+                        'line-color': [
+                            'case',
+                            ['boolean', ['feature-state', 'selected'], false],
+                            [
+                                'case',
+                                ['boolean', ['get', '_isAlert'], false],
+                                '#ff2244',
+                                '#00ffff'
+                            ],
+                            'rgba(255, 255, 255, 0.28)'
+                        ],
+                        'line-width': [
+                            'case',
+                            ['boolean', ['feature-state', 'selected'], false],
+                            3.2,
+                            ['boolean', ['feature-state', 'hover'], false],
+                            2.0,
+                            1.0
+                        ],
+                        'line-opacity': 0.95
+                    }
+                });
+
+                // Inicia com o Brasil selecionado
+                const brasilFeature = paises.features.find(f => (f.properties.ADMIN === 'Brasil' || f.properties.name === 'Brasil'));
+                if (brasilFeature) {
+                    selectedCountryId = brasilFeature.id;
+                    map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: true });
+                    exibirDadosPais('Brasil', -15.79, -47.88);
+                }
+
+            } catch (err) {
+                console.error('Erro ao configurar camadas de países:', err);
             }
         });
 
-        // ======================================
-        // CURSOR INTERATIVO
-        // ======================================
-
-        map.on('mouseenter', 'paises-fill', () => {
-            map.getCanvas().style.cursor = 'pointer';
+        // Hover nos países
+        map.on('mousemove', 'paises-fill', (e) => {
+            if (e.features.length > 0) {
+                map.getCanvas().style.cursor = 'pointer';
+                const fId = e.features[0].id;
+                if (hoveredCountryId !== null && hoveredCountryId !== fId) {
+                    map.setFeatureState({ source: 'paises-source', id: hoveredCountryId }, { hover: false });
+                }
+                hoveredCountryId = fId;
+                map.setFeatureState({ source: 'paises-source', id: hoveredCountryId }, { hover: true });
+            }
         });
 
         map.on('mouseleave', 'paises-fill', () => {
             map.getCanvas().style.cursor = '';
+            if (hoveredCountryId !== null) {
+                map.setFeatureState({ source: 'paises-source', id: hoveredCountryId }, { hover: false });
+                hoveredCountryId = null;
+            }
         });
 
-        console.log('Mapa interativo de países carregado!');
+        // Clique no Mapa
+        map.on('click', (evento) => {
+            const { lng, lat } = evento.lngLat;
+            console.log(`Longitude: ${lng}, Latitude: ${lat}`);
 
-    } catch (erro) {
-        console.error('Erro ao carregar os limites dos países:', erro);
-    }
+            preciseClickMarker.setLngLat([lng, lat]).addTo(map);
 
-});
+            const features = map.queryRenderedFeatures(evento.point, { layers: ['paises-fill'] });
 
+            if (features.length > 0) {
+                const paisClicado = features[0];
+                const nomePais = paisClicado.properties.ADMIN || paisClicado.properties.name || 'País';
 
-        // ======================================
-        // REMOVE CONTROLADORES DA TELA
-        // ======================================
+                if (selectedCountryId !== null) {
+                    map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: false });
+                }
 
-document.querySelector('.maplibregl-ctrl-top-right').style.display = 'none';
-document.querySelector('.maplibregl-control-container').style.display = 'none';
+                selectedCountryId = paisClicado.id;
+                map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: true });
+                exibirDadosPais(nomePais, lat, lng);
+            } else {
+                if (selectedCountryId !== null) {
+                    map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: false });
+                    selectedCountryId = null;
+                }
+                exibirDadosPais('Coordenada Livre', lat, lng);
+            }
+        });
 
-</script>
+        // ========================================================
+        // 8. CONTROLES E PAINEL INFERIOR ARRASTÁVEL
+        // ========================================================
+        btnFlyTo.addEventListener('click', () => {
+            map.flyTo({ center: [currentActiveTarget.lng, currentActiveTarget.lat], zoom: 5, pitch: 45, essential: true });
+        });
 
+        closeSidebarBtn.addEventListener('click', () => {
+            sidebar.classList.add('collapsed');
+            sidebarToggleBtn.style.display = 'flex';
+        });
+
+        sidebarToggleBtn.addEventListener('click', () => {
+            sidebar.classList.remove('collapsed');
+            sidebarToggleBtn.style.display = 'none';
+        });
+
+        // Drag do painel inferior
+        const bottomPanel = document.getElementById('bottom-panel');
+        const dragHandle = document.getElementById('panel-drag-handle');
+        let isDragging = false;
+        let dragStartX = 0, dragStartY = 0;
+        let initialLeft = 0, initialTop = 0;
+
+        dragHandle.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            const rect = bottomPanel.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            bottomPanel.style.bottom = 'auto';
+            bottomPanel.style.left = `${initialLeft}px`;
+            bottomPanel.style.top = `${initialTop}px`;
+            bottomPanel.style.transform = 'none';
+            dragHandle.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+
+            const maxLeft = window.innerWidth - bottomPanel.offsetWidth - 10;
+            const maxTop = window.innerHeight - bottomPanel.offsetHeight - 10;
+
+            bottomPanel.style.left = `${Math.max(10, Math.min(maxLeft, initialLeft + dx))}px`;
+            bottomPanel.style.top = `${Math.max(10, Math.min(maxTop, initialTop + dy))}px`;
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (isDragging) {
+                isDragging = false;
+                dragHandle.style.cursor = 'grab';
+            }
+        });
+
+        // Controles de Manipulação
+        const btnToggleRotate = document.getElementById('btn-toggle-rotate');
+        const rotateSpeedSlider = document.getElementById('rotate-speed');
+        const btnToggleSatellite = document.getElementById('btn-toggle-satellite');
+        const btnToggleTerrain = document.getElementById('btn-toggle-terrain');
+        const btnTogglePitch = document.getElementById('btn-toggle-pitch');
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+        const btnResetView = document.getElementById('btn-reset-view');
+
+        let isAutoRotating = false;
+        let currentRotateSpeed = 0.5;
+
+        function rotateLoop() {
+            if (isAutoRotating) {
+                const c = map.getCenter();
+                c.lng -= currentRotateSpeed * 0.25;
+                map.easeTo({ center: c, duration: 100, easing: n => n });
+            }
+            requestAnimationFrame(rotateLoop);
+        }
+        rotateLoop();
+
+        btnToggleRotate.addEventListener('click', () => {
+            isAutoRotating = !isAutoRotating;
+            btnToggleRotate.classList.toggle('active', isAutoRotating);
+            document.getElementById('rotate-icon').textContent = isAutoRotating ? '⏸' : '▶';
+        });
+
+        rotateSpeedSlider.addEventListener('input', (e) => {
+            currentRotateSpeed = parseFloat(e.target.value);
+        });
+
+        btnToggleSatellite.addEventListener('click', () => {
+            const isVisible = map.getLayoutProperty('satellite', 'visibility') !== 'none';
+            map.setLayoutProperty('satellite', 'visibility', isVisible ? 'none' : 'visible');
+            btnToggleSatellite.classList.toggle('active', !isVisible);
+        });
+
+        let terrainActive = true;
+        btnToggleTerrain.addEventListener('click', () => {
+            terrainActive = !terrainActive;
+            map.setTerrain(terrainActive ? { source: 'terrainSource', exaggeration: 1.2 } : null);
+            btnToggleTerrain.classList.toggle('active', terrainActive);
+        });
+
+        btnTogglePitch.addEventListener('click', () => {
+            const currentPitch = map.getPitch();
+            const newPitch = currentPitch > 30 ? 0 : 60;
+            map.easeTo({ pitch: newPitch, duration: 800 });
+            btnTogglePitch.classList.toggle('active', newPitch > 0);
+        });
+
+        btnZoomIn.addEventListener('click', () => map.zoomIn());
+        btnZoomOut.addEventListener('click', () => map.zoomOut());
+
+        btnResetView.addEventListener('click', () => {
+            isAutoRotating = false;
+            btnToggleRotate.classList.remove('active');
+            document.getElementById('rotate-icon').textContent = '▶';
+            map.flyTo({ center: [-47.88, -15.79], zoom: 2.3, pitch: 25, bearing: 0, essential: true });
+            exibirDadosPais('Brasil', -15.79, -47.88);
+        });
+
+        document.querySelectorAll('.maplibregl-ctrl-top-right, .maplibregl-control-container').forEach(el => {
+            el.style.display = 'none';
+        });
+    </script>
 </body>
+
 </html>
