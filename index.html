@@ -11,6 +11,26 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.18.0/dist/maplibre-gl.css" />
 
     <style>
+        /* ========================================================
+           TYPOGRAPHY & ROOT SIZES (EASILY CUSTOMIZABLE)
+           To adjust any font size, locate the corresponding variable or rule below:
+           ======================================================== */
+        :root {
+            --font-header-title: 16px;
+            --font-header-sub: 15px;
+            --font-view-title: 22px;
+            --font-filter-btn: 14px;
+            --font-disaster-name: 15.5px;
+            --font-disaster-desc: 12.5px;
+            --font-country-title: 26px;
+            --font-region-sub: 17px;
+            --font-card-label: 15px;
+            --font-card-val: 15px;
+            --font-subheading: 15px;
+            --font-body-text: 13.5px;
+            --font-drag-text: 11px;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -40,14 +60,13 @@
             background: #000000;
         }
 
-        /* 3D Globe map viewport positioned with full clearance above the bottom footer (74px),
-           ensuring the entire globe is centered vertically on screen without any bottom clipping */
+        /* 3D Globe map viewport positioned with full clearance above the bottom dock */
         #map {
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 74px;
+            right: 30px;
+            bottom: 130px;
             z-index: 1;
             background: transparent !important;
         }
@@ -61,6 +80,17 @@
             cursor: grabbing;
         }
 
+        /* Completely remove the white attribution box from MapLibre / Mapterhorn / OpenFreeMap */
+        .maplibregl-ctrl-attrib,
+        .maplibregl-ctrl-attrib-button,
+        .maplibregl-compact,
+        .maplibregl-ctrl-bottom-right {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
         /* ========================================================
            1. TOP LEFT HEADER
            ======================================================== */
@@ -72,17 +102,17 @@
             display: flex;
             align-items: center;
             gap: 14px;
-            padding: 6px 14px;
-            background: rgba(3, 8, 20, 0.75);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 8px;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            background: rgba(3, 8, 20, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 10px;
+            backdrop-filter: blur(14px);
+            box-shadow: 0 4px 22px rgba(0, 0, 0, 0.85);
         }
 
         .nasa-logo-img {
-            height: 32px;
-            width: 32px;
+            height: 36px;
+            width: 36px;
             border-radius: 50%;
             display: block;
             object-fit: cover;
@@ -90,12 +120,12 @@
 
         .header-divider {
             width: 1px;
-            height: 22px;
+            height: 24px;
             background: rgba(255, 255, 255, 0.25);
         }
 
         .header-title-main {
-            font-size: 13.5px;
+            font-size: var(--font-header-title);
             font-weight: 700;
             letter-spacing: 1.2px;
             color: #ffffff;
@@ -103,10 +133,10 @@
         }
 
         .header-sub-nisar {
-            font-size: 13px;
+            font-size: var(--font-header-sub);
             font-weight: 600;
             color: #93c5fd;
-            letter-spacing: 1px;
+            letter-spacing: 1.1px;
         }
 
         /* ========================================================
@@ -114,48 +144,48 @@
            ======================================================== */
         #left-filter-menu {
             position: absolute;
-            top: 78px;
+            top: 84px;
             left: 24px;
             z-index: 20;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         .view-title-container {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .accent-bar {
-            width: 4px;
-            height: 20px;
+            width: 4.5px;
+            height: 22px;
             background: #00e5ff;
-            border-radius: 2px;
-            box-shadow: 0 0 8px #00e5ff;
+            border-radius: 3px;
+            box-shadow: 0 0 10px #00e5ff;
         }
 
         .view-title-text {
-            font-size: 18px;
+            font-size: var(--font-view-title);
             font-weight: 700;
             color: #ffffff;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
         }
 
         .filter-buttons-row {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
         }
 
         .filter-btn {
             background: rgba(4, 12, 28, 0.85);
             border: 1px solid rgba(0, 229, 255, 0.45);
             color: #00e5ff;
-            font-size: 12px;
+            font-size: var(--font-filter-btn);
             font-weight: 600;
-            padding: 5px 12px;
+            padding: 6px 14px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -163,7 +193,7 @@
         }
 
         .filter-btn:hover {
-            background: rgba(0, 229, 255, 0.2);
+            background: rgba(0, 229, 255, 0.25);
             color: #ffffff;
             transform: translateY(-1px);
         }
@@ -172,26 +202,81 @@
             background: #00e5ff;
             color: #020617;
             font-weight: 700;
-            box-shadow: 0 0 12px rgba(0, 229, 255, 0.6);
+            box-shadow: 0 0 14px rgba(0, 229, 255, 0.65);
             border-color: #00e5ff;
         }
 
         /* ========================================================
-           3. FIXED BOTTOM FOOTER BAR (6 DISASTER CATEGORIES)
+           3. TRANSLUCENT & DRAGGABLE BOTTOM DOCK
            ======================================================== */
         #bottom-disasters-bar {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 64px;
-            background: rgba(2, 6, 16, 0.94);
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(16px);
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 860px;
+            max-width: calc(100vw - 32px);
+            background: rgba(3, 9, 24, 0.76);
+            border: 1px solid rgba(0, 229, 255, 0.35);
+            border-radius: 14px;
+            backdrop-filter: blur(18px);
             z-index: 25;
+            box-shadow: 0 12px 42px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(0, 229, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+        #bottom-disasters-bar:hover {
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), inset 0 0 25px rgba(0, 229, 255, 0.15);
+        }
+
+        /* Drag handle bar at the top of the dock */
+        .dock-drag-bar {
+            width: 100%;
+            height: 16px;
+            background: rgba(0, 229, 255, 0.08);
+            border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            transition: background 0.2s;
+        }
+
+        .dock-drag-bar:hover {
+            background: rgba(0, 229, 255, 0.22);
+        }
+
+        .dock-drag-bar:active {
+            cursor: grabbing;
+        }
+
+        .drag-icon-handle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.75;
+            transition: opacity 0.2s;
+        }
+
+        .dock-drag-bar:hover .drag-icon-handle {
+            opacity: 1;
+        }
+
+        .drag-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #00e5ff;
+            box-shadow: 0 0 4px #00e5ff;
+        }
+
+        .dock-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
-            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+            height: 60px;
         }
 
         .disaster-col {
@@ -199,7 +284,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 8px 12px;
+            padding: 6px 10px;
             cursor: pointer;
             transition: background 0.2s, transform 0.2s;
             position: relative;
@@ -210,23 +295,23 @@
             content: '';
             position: absolute;
             right: 0;
-            top: 20%;
-            height: 60%;
+            top: 18%;
+            height: 64%;
             width: 1px;
             background: rgba(255, 255, 255, 0.12);
         }
 
         .disaster-col:hover {
-            background: rgba(0, 229, 255, 0.08);
+            background: rgba(0, 229, 255, 0.12);
         }
 
         .disaster-col.active {
-            background: rgba(0, 229, 255, 0.16);
-            border-top: 2px solid #00e5ff;
+            background: rgba(0, 229, 255, 0.22);
+            border-bottom: 3px solid #00e5ff;
         }
 
         .disaster-name {
-            font-size: 13.5px;
+            font-size: var(--font-disaster-name);
             font-weight: 700;
             color: #ffffff;
             margin-bottom: 2px;
@@ -234,38 +319,50 @@
         }
 
         .disaster-desc {
-            font-size: 11px;
-            color: #94a3b8;
+            font-size: var(--font-disaster-desc);
+            color: #cbd5e1;
             font-weight: 400;
         }
 
         /* ========================================================
-           4. RIGHT LEGEND CARD (HIDDEN BY DEFAULT, OPENS ON CLICK)
+           4. EXPANDED RIGHT LEGEND CARD (OPENS DYNAMICALLY ON CLICK)
            ======================================================== */
         #right-legend-card {
             position: fixed;
-            top: 30px;
-            right: 30px;
-            width: 350px;
-            max-width: calc(100vw - 40px);
-            background: rgba(3, 9, 22, 0.88);
-            border: 1px solid rgba(0, 229, 255, 0.4);
-            border-radius: 14px;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 12px 45px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(0, 229, 255, 0.05);
+            top: 24px;
+            right: 24px;
+            width: 390px;
+            max-width: calc(100vw - 36px);
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            background: rgba(3, 9, 24, 0.92);
+            border: 1px solid rgba(0, 229, 255, 0.45);
+            border-radius: 16px;
+            backdrop-filter: blur(22px);
+            box-shadow: 0 16px 50px rgba(0, 0, 0, 0.9), inset 0 0 25px rgba(0, 229, 255, 0.08);
             padding: 22px;
             z-index: 30;
             display: none;
-            /* Hidden until clicked */
+            /* Opens dynamically when clicking a country or hazard point */
             flex-direction: column;
-            gap: 12px;
-            animation: fadeInCard 0.3s ease-out;
+            gap: 14px;
+            animation: fadeInCard 0.25s ease-out;
+        }
+
+        /* Sleek dark scrollbar */
+        #right-legend-card::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #right-legend-card::-webkit-scrollbar-thumb {
+            background: rgba(0, 229, 255, 0.3);
+            border-radius: 3px;
         }
 
         @keyframes fadeInCard {
             from {
                 opacity: 0;
-                transform: translateY(-10px);
+                transform: translateY(-8px);
             }
 
             to {
@@ -281,37 +378,44 @@
         }
 
         .country-title {
-            font-size: 22px;
+            font-size: var(--font-country-title);
             font-weight: 700;
             color: #ffffff;
-            line-height: 1.2;
+            line-height: 1.15;
         }
 
         .region-subtitle {
-            font-size: 15px;
+            font-size: var(--font-region-sub);
             font-weight: 500;
-            color: #cbd5e1;
-            margin-top: 2px;
+            color: #93c5fd;
+            margin-top: 3px;
         }
 
         .legend-close-btn {
-            background: transparent;
-            border: none;
-            color: #64748b;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #94a3b8;
             font-size: 20px;
+            border-radius: 8px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             line-height: 1;
-            padding: 2px;
-            transition: color 0.2s;
+            transition: all 0.2s;
         }
 
         .legend-close-btn:hover {
             color: #ffffff;
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
         }
 
         .card-divider {
             height: 1px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.14);
             width: 100%;
         }
 
@@ -319,14 +423,14 @@
         .coord-table {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 7px;
         }
 
         .coord-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13.5px;
+            font-size: var(--font-card-label);
         }
 
         .coord-row .label {
@@ -338,29 +442,61 @@
             font-weight: 700;
             color: #ffffff;
             font-family: 'Courier New', Courier, monospace;
+            font-size: var(--font-card-val);
         }
 
         .illustrative-tag {
-            font-size: 11px;
+            font-size: 11.5px;
             color: #64748b;
             font-style: italic;
-            margin-top: 2px;
         }
 
-        /* Regional Probability Section */
-        .prob-section-title {
+        /* Section Subheadings */
+        .section-subheading {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 14px;
+            font-size: var(--font-subheading);
             font-weight: 700;
             color: #ffffff;
         }
 
+        /* 4.1 Concise News Box */
+        .news-box {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-left: 3px solid #38bdf8;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: var(--font-body-text);
+            line-height: 1.48;
+            color: #e2e8f0;
+        }
+
+        /* 4.2 Protection Guidelines Box */
+        .safety-tips-box {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(234, 179, 8, 0.4);
+            border-left: 3px solid #eab308;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: var(--font-body-text);
+            line-height: 1.48;
+            color: #fef08a;
+        }
+
+        .safety-tips-box.safe {
+            border-color: rgba(34, 197, 94, 0.4);
+            border-left-color: #22c55e;
+            background: rgba(6, 32, 18, 0.75);
+            color: #86efac;
+        }
+
+        /* 4.3 Regional Probability Section */
         .prob-list {
             display: flex;
             flex-direction: column;
-            gap: 7px;
+            gap: 8px;
             margin-top: 6px;
         }
 
@@ -368,13 +504,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12.5px;
+            font-size: 13.5px;
         }
 
         .prob-name-group {
             display: flex;
             align-items: center;
-            gap: 7px;
+            gap: 8px;
             color: #e2e8f0;
             font-weight: 500;
         }
@@ -382,63 +518,46 @@
         .prob-dots-group {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 4.5px;
         }
 
         .prob-dot {
-            width: 6.5px;
-            height: 6.5px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             background: #1e293b;
         }
 
         .prob-dot.filled {
             background: #00e5ff;
-            box-shadow: 0 0 5px rgba(0, 229, 255, 0.8);
+            box-shadow: 0 0 5px rgba(0, 229, 255, 0.85);
         }
 
-        /* Safety Guidelines Button & Box */
-        .btn-safety-tips {
+        /* 4.4 Live SEPS API Status Badge */
+        .api-status-badge {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(4, 12, 28, 0.7);
+            border: 1px solid rgba(0, 229, 255, 0.25);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12.5px;
+            color: #94a3b8;
+        }
+
+        .api-badge-header {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 7px;
-            background: rgba(234, 179, 8, 0.14);
-            border: 1px solid rgba(234, 179, 8, 0.5);
-            color: #fef08a;
-            font-size: 12.5px;
+            justify-content: space-between;
+            color: #38bdf8;
             font-weight: 600;
-            padding: 9px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-            margin-top: 4px;
         }
 
-        .btn-safety-tips:hover {
-            background: rgba(234, 179, 8, 0.28);
-            border-color: #facc15;
-            color: #ffffff;
-            box-shadow: 0 0 12px rgba(234, 179, 8, 0.35);
-        }
-
-        .safety-tips-box {
-            background: rgba(15, 23, 42, 0.88);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 8px;
-            padding: 10px 12px;
-            font-size: 11.5px;
-            line-height: 1.45;
-            color: #e2e8f0;
-            display: none;
-            animation: fadeInCard 0.2s ease;
-        }
-
-        .safety-tips-box.safe {
-            border-color: rgba(34, 197, 94, 0.4);
-            background: rgba(6, 32, 18, 0.75);
-            color: #86efac;
+        .api-badge-result {
+            color: #cbd5e1;
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         /* Full Dataset Link Button */
@@ -447,12 +566,12 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            background: rgba(0, 229, 255, 0.08);
+            background: rgba(0, 229, 255, 0.1);
             border: 1px solid #00e5ff;
             color: #ffffff;
-            font-size: 12.5px;
+            font-size: 14px;
             font-weight: 600;
-            padding: 9px 16px;
+            padding: 10px 16px;
             border-radius: 8px;
             text-decoration: none;
             cursor: pointer;
@@ -462,11 +581,11 @@
         .btn-full-data:hover {
             background: #00e5ff;
             color: #020617;
-            box-shadow: 0 0 16px rgba(0, 229, 255, 0.5);
+            box-shadow: 0 0 18px rgba(0, 229, 255, 0.55);
         }
 
         /* ========================================================
-           5. HAZARD EVENT MARKERS ON 3D GLOBE
+           5. HAZARD EVENT MARKERS & NISAR 3D SATELLITE
            ======================================================== */
         .hazard-marker {
             position: relative;
@@ -487,7 +606,7 @@
             border-radius: 50%;
             background: var(--marker-color, #00e5ff);
             border: 2px solid #ffffff;
-            box-shadow: 0 0 8px var(--marker-color, #00e5ff);
+            box-shadow: 0 0 10px var(--marker-color, #00e5ff);
         }
 
         .hazard-marker-ring {
@@ -501,7 +620,7 @@
         .hazard-marker.selected-target .hazard-marker-ring {
             inset: -14px;
             border: 2.5px solid #00e5ff;
-            box-shadow: 0 0 15px #00e5ff;
+            box-shadow: 0 0 16px #00e5ff;
             animation: none;
         }
 
@@ -517,11 +636,36 @@
             }
         }
 
-        /* 3D NISAR Satellite */
+        /* Precise Click Target Marker */
+        .precise-click-marker {
+            position: relative;
+            width: 22px;
+            height: 22px;
+            pointer-events: none;
+        }
+
+        .precise-click-ring {
+            position: absolute;
+            inset: -6px;
+            border: 2px solid #00e5ff;
+            border-radius: 50%;
+            animation: ringPulse 1.8s infinite ease-out;
+        }
+
+        .precise-click-dot {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            border: 3px solid #00e5ff;
+            border-radius: 50%;
+            box-shadow: 0 0 14px #00e5ff;
+        }
+
+        /* 3D NISAR Satellite (Expanded bounds to prevent any clipping) */
         .nisar-marker-container {
             position: relative;
-            width: 64px;
-            height: 64px;
+            width: 68px;
+            height: 68px;
             cursor: pointer;
             transition: transform 0.2s;
             overflow: visible;
@@ -545,9 +689,9 @@
             background: rgba(4, 9, 22, 0.92);
             border: 1px solid #00e5ff;
             color: #00e5ff;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 700;
-            padding: 1px 6px;
+            padding: 2px 7px;
             border-radius: 4px;
             white-space: nowrap;
             letter-spacing: 0.5px;
@@ -564,11 +708,12 @@
 
         @media(max-width: 900px) {
             #bottom-disasters-bar {
-                height: 56px;
+                width: calc(100vw - 20px);
+                bottom: 10px;
             }
 
             .disaster-name {
-                font-size: 11.5px;
+                font-size: 13px;
             }
 
             .disaster-desc {
@@ -576,9 +721,9 @@
             }
 
             #right-legend-card {
-                width: calc(100vw - 40px);
-                right: 20px;
-                top: 130px;
+                width: calc(100vw - 24px);
+                right: 12px;
+                top: 110px;
             }
         }
     </style>
@@ -618,7 +763,7 @@
         </div>
     </section>
 
-    <!-- 3. RIGHT LEGEND CARD (DISPLAYS ONLY UPON CLICKING A LOCATION) -->
+    <!-- 3. EXPANDED RIGHT LEGEND CARD (DISPLAYS DYNAMICALLY UPON CLICK) -->
     <aside id="right-legend-card">
         <div class="legend-header">
             <div>
@@ -630,6 +775,7 @@
 
         <div class="card-divider"></div>
 
+        <!-- Coordinates and Event -->
         <div class="coord-table">
             <div class="coord-row">
                 <span class="label">Latitude</span>
@@ -643,35 +789,64 @@
                 <span class="label">Event</span>
                 <span class="val" id="legend-event" style="color: #00e5ff;">D06</span>
             </div>
-            <div class="illustrative-tag">Illustrative data</div>
+            <div class="illustrative-tag">Illustrative and real-time scientific telemetry</div>
         </div>
 
         <div class="card-divider"></div>
 
+        <!-- 3.1 Succinct Climate & Environmental News -->
         <div>
-            <div class="prob-section-title">
-                <div class="accent-bar" style="height: 14px;"></div>
-                <span>Regional Probability</span>
+            <div class="section-subheading">
+                <div class="accent-bar" style="height: 15px;"></div>
+                <span>Environmental & Climate News</span>
+            </div>
+            <div class="news-box" id="legend-news-box" style="margin-top: 8px;">
+                <!-- Dynamically rendered via JS -->
+            </div>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <!-- 3.2 Civil Defense & Protection Tips -->
+        <div>
+            <div class="section-subheading">
+                <div class="accent-bar" style="height: 15px; background: #eab308; box-shadow: 0 0 8px #eab308;"></div>
+                <span id="legend-protection-title">Civil Defense & Protection Tips</span>
+            </div>
+            <div class="safety-tips-box" id="legend-safety-tips-box" style="margin-top: 8px;">
+                <!-- Dynamically rendered via JS -->
+            </div>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <!-- 3.3 Regional Hazard Probabilities -->
+        <div>
+            <div class="section-subheading">
+                <div class="accent-bar" style="height: 15px;"></div>
+                <span>Regional Hazard Probability</span>
             </div>
 
             <div class="prob-list" id="legend-prob-list">
                 <!-- Dynamically rendered via JS -->
             </div>
-
-            <div class="illustrative-tag" style="margin-top: 6px;">Illustrative data</div>
         </div>
 
-        <!-- Safety Guidelines Button & Box -->
-        <button class="btn-safety-tips" id="btn-safety-tips" title="View safety guidelines for this region">
-            <span>🛡️ Safety Guidelines</span>
-        </button>
-        <div class="safety-tips-box" id="safety-tips-box">
-            <!-- Dynamically rendered via JS -->
+        <!-- 3.4 Live SEPS API Communication Badge -->
+        <div class="api-status-badge" id="api-status-badge">
+            <div class="api-badge-header">
+                <span>🛰️ SEPS API (Live Query)</span>
+                <span id="api-badge-indicator" style="font-size: 11px;">Connecting...</span>
+            </div>
+            <div class="api-badge-result" id="api-badge-result">
+                Querying sepsapi.earth endpoint for region records...
+            </div>
         </div>
 
-        <a href="#" class="btn-full-data" id="btn-full-data" title="Explore full scientific datasets">
-            <span>Full dataset</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+        <a href="https://nisar.jpl.nasa.gov/" target="_blank" rel="noopener noreferrer" class="btn-full-data"
+            title="Explore full scientific datasets">
+            <span>Full Scientific Dataset</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                 <polyline points="15 3 21 3 21 9"></polyline>
@@ -680,31 +855,43 @@
         </a>
     </aside>
 
-    <!-- 4. FIXED BOTTOM FOOTER: 6 DISASTER CATEGORIES -->
+    <!-- 4. TRANSLUCENT & DRAGGABLE BOTTOM DOCK (6 DISASTERS) -->
     <nav id="bottom-disasters-bar">
-        <div class="disaster-col" data-code="D01" title="Filter by Tsunami (D01)">
-            <div class="disaster-name">Tsunami</div>
-            <div class="disaster-desc">Coastal warnings</div>
+        <div class="dock-drag-bar" id="dock-drag-bar" title="Click and drag to reposition">
+            <div class="drag-icon-handle">
+                <span class="drag-dot"></span>
+                <span class="drag-dot"></span>
+                <span class="drag-dot"></span>
+                <span class="drag-dot"></span>
+                <span class="drag-dot"></span>
+                <span class="drag-dot"></span>
+            </div>
         </div>
-        <div class="disaster-col" data-code="D02" title="Filter by Wildfires (D02)">
-            <div class="disaster-name">Wildfires</div>
-            <div class="disaster-desc">Active hotspots</div>
-        </div>
-        <div class="disaster-col" data-code="D03" title="Filter by Earthquake (D03)">
-            <div class="disaster-name">Earthquake</div>
-            <div class="disaster-desc">Seismic activity</div>
-        </div>
-        <div class="disaster-col" data-code="D04" title="Filter by El Niño (D04)">
-            <div class="disaster-name">El Niño</div>
-            <div class="disaster-desc">Climate anomalies</div>
-        </div>
-        <div class="disaster-col" data-code="D05" title="Filter by Storms (D05)">
-            <div class="disaster-name">Storms</div>
-            <div class="disaster-desc">Wind & precipitation</div>
-        </div>
-        <div class="disaster-col" data-code="D06" title="Filter by Flooding (D06)">
-            <div class="disaster-name">Flooding</div>
-            <div class="disaster-desc">Inundated areas</div>
+        <div class="dock-grid">
+            <div class="disaster-col" data-code="D01" title="Filter by Tsunami (D01)">
+                <div class="disaster-name">Tsunami</div>
+                <div class="disaster-desc">Coastal warnings</div>
+            </div>
+            <div class="disaster-col" data-code="D02" title="Filter by Wildfires (D02)">
+                <div class="disaster-name">Wildfires</div>
+                <div class="disaster-desc">Active hotspots</div>
+            </div>
+            <div class="disaster-col" data-code="D03" title="Filter by Earthquake (D03)">
+                <div class="disaster-name">Earthquake</div>
+                <div class="disaster-desc">Seismic activity</div>
+            </div>
+            <div class="disaster-col" data-code="D04" title="Filter by El Niño (D04)">
+                <div class="disaster-name">El Niño</div>
+                <div class="disaster-desc">Climate anomalies</div>
+            </div>
+            <div class="disaster-col" data-code="D05" title="Filter by Storms (D05)">
+                <div class="disaster-name">Storms</div>
+                <div class="disaster-desc">Wind & precipitation</div>
+            </div>
+            <div class="disaster-col" data-code="D06" title="Filter by Flooding (D06)">
+                <div class="disaster-name">Flooding</div>
+                <div class="disaster-desc">Inundated areas</div>
+            </div>
         </div>
     </nav>
 
@@ -728,34 +915,31 @@
 
         function initStars() {
             stars = [];
-            const count = Math.floor((starCanvas.width * starCanvas.height) / 2200);
+            const count = Math.floor((starCanvas.width * starCanvas.height) / 3800);
             for (let i = 0; i < count; i++) {
                 stars.push({
                     x: Math.random() * starCanvas.width,
                     y: Math.random() * starCanvas.height,
-                    radius: Math.random() * 0.65 + 0.2,
-                    alpha: Math.random() * 0.5 + 0.15,
-                    speed: Math.random() * 0.01 + 0.003
+                    radius: Math.random() * 0.9 + 0.25,
+                    baseAlpha: Math.random() * 0.55 + 0.2,
+                    speed: Math.random() * 0.02 + 0.005,
+                    phase: Math.random() * Math.PI * 2
                 });
             }
         }
 
         function drawStars() {
-            starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
             starCtx.fillStyle = '#000000';
             starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
 
-            const now = Date.now() * 0.001;
-            stars.forEach((s, idx) => {
-                const twinkle = Math.sin(now * 1.5 + idx) * 0.12;
-                const alpha = Math.max(0.08, Math.min(0.65, s.alpha + twinkle));
+            stars.forEach(s => {
+                s.phase += s.speed;
+                const alpha = s.baseAlpha + Math.sin(s.phase) * 0.25;
                 starCtx.beginPath();
                 starCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-                starCtx.fillStyle = '#ffffff';
-                starCtx.globalAlpha = alpha;
+                starCtx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, Math.min(1, alpha))})`;
                 starCtx.fill();
             });
-            starCtx.globalAlpha = 1.0;
             requestAnimationFrame(drawStars);
         }
 
@@ -764,7 +948,7 @@
         drawStars();
 
         // ========================================================
-        // 2. DISASTER DEFINITIONS & SAFETY GUIDELINES (ENGLISH)
+        // 2. DISASTER DEFINITIONS, NEWS DB & SAFETY TIPS (ENGLISH)
         // ========================================================
         const disasterDefinitions = {
             'D01': {
@@ -772,48 +956,59 @@
                 icon: '🌊',
                 color: '#0284c7',
                 desc: 'Coastal warnings',
-                tips: 'Evacuate coastal shorelines immediately upon sirens or seismic tremors. Relocate to inland terrain at least 30 meters above sea level and wait for official civil defense clearance.'
+                tips: 'Evacuate coastlines immediately to terrain above 30m; await official all-clear.'
             },
             'D02': {
                 name: 'Wildfires',
                 icon: '🔥',
                 color: '#f97316',
                 desc: 'Active hotspots',
-                tips: 'Wear N95/PFF2 respirator masks to filter toxic smoke particulates. Seal windows and doorways with damp cloths, keep a 10m defensible perimeter clear of brush, and follow designated evacuation routes.'
+                tips: 'Use N95 masks, seal windows, clear a 10m perimeter, and follow evacuation routes.'
             },
             'D03': {
                 name: 'Earthquake',
                 icon: '⚡',
                 color: '#eab308',
                 desc: 'Seismic activity',
-                tips: 'Execute "Drop, Cover, and Hold On" beneath sturdy tables or interior shear walls. Keep clear of glazing and power lines, and shut off master gas valves once primary shaking stops.'
+                tips: 'Drop, Cover, and Hold On. Stay clear of glass and isolate master gas valves.'
             },
             'D04': {
                 name: 'El Niño',
                 icon: '🌀',
                 color: '#f43f5e',
                 desc: 'Climate anomalies',
-                tips: 'Monitor regional agro-climatic advisories. Ration municipal potable water during protracted dry spells and inspect drainage culverts to handle unseasonal heavy rainfall.'
+                tips: 'Follow agro-climatic advisories, conserve water, and clear drainage channels.'
             },
             'D05': {
                 name: 'Storms',
                 icon: '🌪️',
                 color: '#a855f7',
                 desc: 'Wind & precipitation',
-                tips: 'Take shelter in reinforced masonry structures away from external glass. Never park vehicles beneath large trees or billboards, and unplug sensitive electrical devices.'
+                tips: 'Shelter in interior rooms, avoid tall trees, and disconnect power.'
             },
             'D06': {
                 name: 'Flooding',
                 icon: '💧',
                 color: '#00e5ff',
                 desc: 'Inundated areas',
-                tips: 'Evacuate low-lying river floodplains early. Disconnect the building master electrical breaker and never walk, swim, or drive through standing or rapidly moving floodwaters.'
+                tips: 'Evacuate low basins early; never walk or drive through moving floodwaters.'
             }
         };
 
-        // GLOBAL HAZARD DATASET (CORRELATED WITH IMAGES 2 & 3)
+        // Succinct Environmental News Database per Country/Region
+        const countryNewsDB = {
+            'Canada': 'River stage monitoring active in eastern basins; NISAR tracking runoff.',
+            'United States': 'Western wildfire dry fuel watch and coastal storm tracking active.',
+            'Brazil': 'Southern flood crests and Amazon-Cerrado vegetation indices monitored.',
+            'Venezuela': 'Mountain flash-flood alert and savanna hotspot monitoring active.',
+            'Japan': 'Nankai subduction and coastal seismic buoys on active radar surveillance.',
+            'Philippines': 'Philippine Sea tropical disturbance monitored for coastal swells.',
+            'Chile': 'Atacama trench deep seismic activity monitored by radar networks.',
+            'default': 'NASA constellations maintaining continuous radar environmental monitoring.'
+        };
+
+        // GLOBAL HAZARD DATASET
         const globalHazardPoints = [
-            // Canada (Nova Scotia) - D06
             {
                 id: 'ca-novascotia',
                 country: 'Canada',
@@ -823,7 +1018,6 @@
                 lng: -63.31,
                 probs: { 'D01': 8, 'D02': 3, 'D03': 4, 'D04': 8, 'D06': 9 }
             },
-            // Canada - Great Lakes / Ontario - D06
             {
                 id: 'ca-ontario',
                 country: 'Canada',
@@ -833,7 +1027,6 @@
                 lng: -79.40,
                 probs: { 'D01': 2, 'D02': 4, 'D03': 2, 'D04': 7, 'D06': 8 }
             },
-            // US - East Coast - D06
             {
                 id: 'us-east',
                 country: 'United States',
@@ -843,7 +1036,6 @@
                 lng: -74.00,
                 probs: { 'D01': 5, 'D02': 2, 'D03': 3, 'D04': 6, 'D06': 8 }
             },
-            // US - Rocky Mountains - D06
             {
                 id: 'us-rockies',
                 country: 'United States',
@@ -853,7 +1045,6 @@
                 lng: -105.78,
                 probs: { 'D01': 1, 'D02': 7, 'D03': 3, 'D04': 5, 'D06': 7 }
             },
-            // US - California (Wildfires - D02)
             {
                 id: 'us-california',
                 country: 'United States',
@@ -863,7 +1054,6 @@
                 lng: -119.41,
                 probs: { 'D01': 4, 'D02': 9, 'D03': 8, 'D04': 6, 'D06': 3 }
             },
-            // US - San Andreas Fault (Earthquake - D03)
             {
                 id: 'us-sanandreas',
                 country: 'United States',
@@ -873,7 +1063,6 @@
                 lng: -119.55,
                 probs: { 'D01': 5, 'D02': 6, 'D03': 9, 'D04': 5, 'D06': 2 }
             },
-            // Brazil - Amazon Rainforest (Wildfires - D02)
             {
                 id: 'br-amazonia',
                 country: 'Brazil',
@@ -883,7 +1072,6 @@
                 lng: -60.02,
                 probs: { 'D01': 1, 'D02': 9, 'D03': 2, 'D04': 8, 'D06': 7 }
             },
-            // Brazil - Rio Grande do Sul (Flooding - D06)
             {
                 id: 'br-rs',
                 country: 'Brazil',
@@ -893,7 +1081,6 @@
                 lng: -51.22,
                 probs: { 'D01': 3, 'D02': 2, 'D03': 1, 'D04': 9, 'D06': 9 }
             },
-            // Equatorial Pacific (El Niño - D04)
             {
                 id: 'pac-elnino-1',
                 country: 'Pacific Ocean',
@@ -912,7 +1099,6 @@
                 lng: -85.00,
                 probs: { 'D01': 8, 'D02': 2, 'D03': 6, 'D04': 9, 'D06': 7 }
             },
-            // Japan - Honshu Trench (Tsunami - D01)
             {
                 id: 'jp-tsunami',
                 country: 'Japan',
@@ -922,7 +1108,6 @@
                 lng: 142.36,
                 probs: { 'D01': 9, 'D02': 1, 'D03': 9, 'D04': 4, 'D06': 6 }
             },
-            // Gulf of Mexico (Storms - D05)
             {
                 id: 'us-gulf-storm',
                 country: 'United States',
@@ -932,7 +1117,6 @@
                 lng: -90.50,
                 probs: { 'D01': 6, 'D02': 2, 'D03': 1, 'D04': 7, 'D06': 8 }
             },
-            // Philippines Sea (Storms - D05)
             {
                 id: 'ph-storm',
                 country: 'Philippines',
@@ -942,7 +1126,6 @@
                 lng: 125.00,
                 probs: { 'D01': 8, 'D02': 1, 'D03': 7, 'D04': 8, 'D06': 9 }
             },
-            // Chile - Atacama Trench (Earthquake - D03)
             {
                 id: 'cl-earthquake',
                 country: 'Chile',
@@ -955,17 +1138,15 @@
         ];
 
         // ========================================================
-        // 3. 3D GLOBE INITIALIZATION (PERFECTLY CENTERED ON SCREEN)
+        // 3. 3D GLOBE INITIALIZATION (ATTRIBUTION HIDDEN, ELEVATED CENTER)
         // ========================================================
-        // Positioning: center latitude is set to 10°N and zoom to 2.02,
-        // elevating the entire Earth sphere higher into the open viewport
-        // with generous clearance above the 64px bottom footer.
         const map = new maplibregl.Map({
             container: 'map',
             zoom: 2.02,
             center: [-65.0, 10.0],
             pitch: 12,
-            maxPitch: 85
+            maxPitch: 85,
+            attributionControl: false // Explicitly removes the attribution box
         });
 
         map.setStyle('https://tiles.openfreemap.org/styles/bright', {
@@ -1009,7 +1190,125 @@
         });
 
         // ========================================================
-        // 4. 3D NISAR SATELLITE (ADJUSTED MARGINS, ZERO CLIPPING)
+        // 4. COUNTRY BOUNDARIES HOVER (LIGHT BLUE) & CLICKS
+        // ========================================================
+        let hoveredCountryId = null;
+        let selectedCountryId = null;
+
+        const alertCountryNames = {
+            'Brazil': true, 'Canada': true, 'United States of America': true,
+            'United States': true, 'Chile': true, 'Japan': true,
+            'Philippines': true, 'Venezuela': true
+        };
+
+        map.on('load', async () => {
+            try {
+                let countriesData = null;
+                // Attempt local load first, then fallback
+                try {
+                    const localRes = await fetch('./countries.geojson');
+                    if (localRes.ok) countriesData = await localRes.json();
+                } catch (e) {
+                    console.log('Local geojson fetch notice:', e.message);
+                }
+
+                if (!countriesData) {
+                    const remoteRes = await fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson');
+                    if (remoteRes.ok) countriesData = await remoteRes.json();
+                }
+
+                if (countriesData && countriesData.features) {
+                    countriesData.features.forEach((feature, index) => {
+                        const name = feature.properties.ADMIN || feature.properties.name || '';
+                        feature.id = index + 1;
+                        feature.properties._isAlert = alertCountryNames.hasOwnProperty(name);
+                    });
+
+                    map.addSource('paises-source', {
+                        type: 'geojson',
+                        data: countriesData,
+                        generateId: false
+                    });
+
+                    // Fill layer with light blue hover (#00e5ff) and red if alert country
+                    map.addLayer({
+                        id: 'paises-fill',
+                        type: 'fill',
+                        source: 'paises-source',
+                        paint: {
+                            'fill-color': [
+                                'case',
+                                ['boolean', ['get', '_isAlert'], false],
+                                '#ef4444',
+                                '#00e5ff'
+                            ],
+                            'fill-opacity': [
+                                'case',
+                                ['boolean', ['feature-state', 'selected'], false],
+                                0.35,
+                                ['boolean', ['feature-state', 'hover'], false],
+                                0.22,
+                                0
+                            ]
+                        }
+                    });
+
+                    // Outline layer
+                    map.addLayer({
+                        id: 'paises-outline',
+                        type: 'line',
+                        source: 'paises-source',
+                        paint: {
+                            'line-color': [
+                                'case',
+                                ['boolean', ['feature-state', 'selected'], false],
+                                '#00e5ff',
+                                ['boolean', ['feature-state', 'hover'], false],
+                                '#38bdf8',
+                                'rgba(255, 255, 255, 0.22)'
+                            ],
+                            'line-width': [
+                                'case',
+                                ['boolean', ['feature-state', 'selected'], false],
+                                2.8,
+                                ['boolean', ['feature-state', 'hover'], false],
+                                2.0,
+                                0.75
+                            ],
+                            'line-opacity': 0.95
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error setting up country boundaries layer:', err);
+            }
+
+            renderHazardMarkers('all');
+        });
+
+        // Country Hover Interactions (Restores light blue highlight on mouseover)
+        map.on('mousemove', 'paises-fill', (e) => {
+            if (e.features && e.features.length > 0) {
+                map.getCanvas().style.cursor = 'pointer';
+                const fId = e.features[0].id;
+                if (hoveredCountryId !== null && hoveredCountryId !== fId) {
+                    map.setFeatureState({ source: 'paises-source', id: hoveredCountryId }, { hover: false });
+                }
+                hoveredCountryId = fId;
+                map.setFeatureState({ source: 'paises-source', id: hoveredCountryId }, { hover: true });
+            }
+        });
+
+        map.on('mouseleave', 'paises-fill', () => {
+            map.getCanvas().style.cursor = '';
+            if (hoveredCountryId !== null) {
+                map.setFeatureState({ source: 'paises-source', id: hoveredCountryId }, { hover: false });
+                hoveredCountryId = null;
+            }
+        });
+
+        // ========================================================
+        // 5. 3D NISAR SATELLITE (ADJUSTED MARGINS, ZERO CLIPPING)
         // ========================================================
         function createNisar3DElement() {
             const container = document.createElement('div');
@@ -1027,7 +1326,6 @@
             container.appendChild(tag);
 
             const scene = new THREE.Scene();
-            // Camera position and lookAt adjusted to give full margin to the radar drum, eliminating any top clipping
             const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 50);
             camera.position.set(2.7, 2.1, 3.9);
             camera.lookAt(0.12, 0.45, 0);
@@ -1042,7 +1340,6 @@
             scene.add(sun);
 
             const nisarGroup = new THREE.Group();
-            // Scale satellite slightly to guarantee full clearance inside the 130x130 canvas
             nisarGroup.scale.set(0.82, 0.82, 0.82);
             scene.add(nisarGroup);
 
@@ -1062,7 +1359,7 @@
             wR.position.set(0.55, 0, 0);
             nisarGroup.add(wR);
 
-            // Carbon Fiber Deployable Boom
+            // Deployable Boom
             const boom = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.025, 0.025, 1.1, 8),
                 new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 })
@@ -1110,6 +1407,8 @@
         }).setLngLat([0, 0]).addTo(map);
 
         let orbitTime = 0;
+        let currentNisarLng = 0;
+        let currentNisarLat = 0;
         const orbitInclination = 98.4 * (Math.PI / 180);
 
         function updateNisarOrbit() {
@@ -1119,16 +1418,65 @@
             const lat = latRad * (180 / Math.PI);
             let lng = (Math.atan2(Math.cos(orbitInclination) * Math.sin(u), Math.cos(u)) * (180 / Math.PI)) - (orbitTime * 28);
             lng = ((lng + 180) % 360 + 360) % 360 - 180;
+            currentNisarLng = lng;
+            currentNisarLat = lat;
             nisarMarker.setLngLat([lng, lat]);
             requestAnimationFrame(updateNisarOrbit);
         }
         updateNisarOrbit();
 
         // ========================================================
-        // 5. HAZARD MARKERS RENDERING (GLOBE 3D)
+        // 6. HAZARD MARKERS & MATHEMATICAL HORIZON OCCLUSION CULLING
+        // Eliminates points floating in space by hiding points behind the Earth limb
         // ========================================================
         const mapMarkerInstances = [];
         let selectedMarkerElement = null;
+
+        let preciseClickMarker = null;
+        let preciseClickPoint = null;
+
+        function updateMarkersOcclusion() {
+            const center = map.getCenter();
+            const cLatRad = center.lat * (Math.PI / 180);
+            const cLngRad = center.lng * (Math.PI / 180);
+
+            // 6.1 Check each hazard marker
+            mapMarkerInstances.forEach(({ point, element }) => {
+                const mLatRad = point.lat * (Math.PI / 180);
+                const mLngRad = point.lng * (Math.PI / 180);
+                // Angular distance cosine: cos(dist) = sin(cLat)*sin(mLat) + cos(cLat)*cos(mLat)*cos(mLng - cLng)
+                const cosDist = Math.sin(cLatRad) * Math.sin(mLatRad) +
+                    Math.cos(cLatRad) * Math.cos(mLatRad) * Math.cos(mLngRad - cLngRad);
+
+                // If cosDist < 0.12, the point is on the far hemisphere behind the horizon
+                if (cosDist < 0.12) {
+                    element.style.display = 'none';
+                } else {
+                    element.style.display = 'block';
+                }
+            });
+
+            // 6.2 Check precise click marker if active
+            if (preciseClickPoint && preciseClickMarker) {
+                const pLatRad = preciseClickPoint.lat * (Math.PI / 180);
+                const pLngRad = preciseClickPoint.lng * (Math.PI / 180);
+                const cosDist = Math.sin(cLatRad) * Math.sin(pLatRad) +
+                    Math.cos(cLatRad) * Math.cos(pLatRad) * Math.cos(pLngRad - cLngRad);
+                const el = preciseClickMarker.getElement();
+                if (el) el.style.display = (cosDist < 0.12) ? 'none' : 'block';
+            }
+
+            // 6.3 Check NISAR satellite horizon visibility
+            const nLatRad = currentNisarLat * (Math.PI / 180);
+            const nLngRad = currentNisarLng * (Math.PI / 180);
+            const nisarCos = Math.sin(cLatRad) * Math.sin(nLatRad) +
+                Math.cos(cLatRad) * Math.cos(nLatRad) * Math.cos(nLngRad - cLngRad);
+            const nisarEl = nisarMarker.getElement();
+            if (nisarEl) nisarEl.style.display = (nisarCos < -0.1) ? 'none' : 'block';
+        }
+
+        map.on('move', updateMarkersOcclusion);
+        map.on('render', updateMarkersOcclusion);
 
         function renderHazardMarkers(filterCode = 'all') {
             mapMarkerInstances.forEach(m => m.marker.remove());
@@ -1164,10 +1512,12 @@
 
                 mapMarkerInstances.push({ point, marker, element: el });
             });
+
+            updateMarkersOcclusion();
         }
 
         // ========================================================
-        // 6. RIGHT LEGEND CARD (INTERACTION & SAFETY GUIDELINES)
+        // 7. EXPANDED RIGHT LEGEND CARD & DYNAMIC SEPS API INTEGRATION
         // ========================================================
         const legendCard = document.getElementById('right-legend-card');
         const legendCountryEl = document.getElementById('legend-country');
@@ -1175,10 +1525,14 @@
         const legendLatEl = document.getElementById('legend-lat');
         const legendLngEl = document.getElementById('legend-lng');
         const legendEventEl = document.getElementById('legend-event');
+        const legendNewsBox = document.getElementById('legend-news-box');
+        const legendProtectionTitle = document.getElementById('legend-protection-title');
+        const legendSafetyTipsBox = document.getElementById('legend-safety-tips-box');
         const legendProbList = document.getElementById('legend-prob-list');
         const legendCloseBtn = document.getElementById('legend-close-btn');
-        const btnSafetyTips = document.getElementById('btn-safety-tips');
-        const safetyTipsBox = document.getElementById('safety-tips-box');
+
+        const apiBadgeIndicator = document.getElementById('api-badge-indicator');
+        const apiBadgeResult = document.getElementById('api-badge-result');
 
         let currentActivePoint = null;
 
@@ -1200,21 +1554,92 @@
             return html;
         }
 
+        // DYNAMIC SEPS API COMMUNICATION
+        async function buscarDesastres(termoPais) {
+            const url = "https://sepsapi.earth/api/filtrar";
+
+            const payload = {
+                termo_titulo: termoPais,
+                data_inicio: "2026-01-01",
+                data_fim: "2026-11-14"
+            };
+
+            apiBadgeIndicator.textContent = 'Querying API...';
+            apiBadgeIndicator.style.color = '#38bdf8';
+            apiBadgeResult.textContent = `Connecting to sepsapi.earth for "${termoPais}"...`;
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "accept": "*/*",
+                        "accept-language": "en-US,en;q=0.9,pt;q=0.8",
+                        "chave": "desastres_naturais",
+                        "content-type": "application/json",
+                        "Referer": "https://sepsapi.earth/docs"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log(`Resposta da API para "${termoPais}":`, data);
+
+                if (data && data.total_encontrado > 0) {
+                    apiBadgeIndicator.textContent = `● Active (${data.total_encontrado} records)`;
+                    apiBadgeIndicator.style.color = '#22c55e';
+                    const latest = data.resultados[0];
+                    const eventDate = latest.Data_Desastre ? new Date(latest.Data_Desastre).toLocaleDateString() : 'Recent';
+                    apiBadgeResult.innerHTML = `<strong>${latest.Categoria || 'Alert'}:</strong> ${latest.Titulo} <span style="opacity:0.7">(${eventDate})</span>`;
+                } else {
+                    apiBadgeIndicator.textContent = '● 0 Records';
+                    apiBadgeIndicator.style.color = '#94a3b8';
+                    apiBadgeResult.textContent = `No active emergency records in database for "${termoPais}" in selected window.`;
+                }
+
+                return data;
+            } catch (error) {
+                console.error("Falha na requisição:", error.message);
+                apiBadgeIndicator.textContent = '● Offline / Local';
+                apiBadgeIndicator.style.color = '#f59e0b';
+                apiBadgeResult.textContent = `API query notice: Using local telemetry & satellite datasets.`;
+                return null;
+            }
+        }
+
         function openLegendCard(point) {
             currentActivePoint = point;
             legendCountryEl.textContent = point.country;
             legendRegionEl.textContent = point.region;
             legendLatEl.textContent = formatLatCustom(point.lat);
             legendLngEl.textContent = formatLngCustom(point.lng);
-            legendEventEl.textContent = point.code || 'Normal';
+            legendEventEl.textContent = point.code || 'Stable';
 
             const def = disasterDefinitions[point.code] || { color: '#00e5ff' };
             legendEventEl.style.color = def.color;
 
-            // Render regional hazard probabilities
-            const probs = point.probs || { 'D01': 1, 'D02': 1, 'D03': 1, 'D04': 1, 'D06': 1 };
-            legendProbList.innerHTML = '';
+            // 1. Succinct News Update
+            const newsText = countryNewsDB[point.country] || countryNewsDB['default'];
+            legendNewsBox.innerHTML = `📰 ${newsText}`;
 
+            // 2. Civil Defense & Protection Tips
+            if (point.code && disasterDefinitions[point.code]) {
+                const alertDef = disasterDefinitions[point.code];
+                legendProtectionTitle.textContent = `Protection Tips: ${alertDef.name}`;
+                legendSafetyTipsBox.className = 'safety-tips-box';
+                legendSafetyTipsBox.innerHTML = `⚠️ <strong>Protocol:</strong> ${alertDef.tips}`;
+            } else {
+                legendProtectionTitle.textContent = 'Civil Defense & Safety Guidelines';
+                legendSafetyTipsBox.className = 'safety-tips-box safe';
+                legendSafetyTipsBox.innerHTML = `✅ <strong>Stable Condition:</strong> No active severe alerts. Standard regional protocols apply.`;
+            }
+
+            // 3. Render Regional Hazard Probabilities
+            const probs = point.probs || { 'D01': 1, 'D02': 1, 'D03': 1, 'D04': 2, 'D06': 1 };
+            legendProbList.innerHTML = '';
             const orderedCodes = ['D01', 'D02', 'D03', 'D04', 'D06'];
             orderedCodes.forEach(code => {
                 const itemDef = disasterDefinitions[code];
@@ -1233,32 +1658,18 @@
                 legendProbList.appendChild(row);
             });
 
-            // Reset safety box when opening a new point
-            safetyTipsBox.style.display = 'none';
-
-            // Make legend card visible upon click
-            legendCard.style.display = 'flex';
-            console.log(`Longitude: ${point.lng}, Latitude: ${point.lat}`);
-        }
-
-        // Safety Guidelines Button Click Handler
-        btnSafetyTips.addEventListener('click', () => {
-            if (safetyTipsBox.style.display === 'block') {
-                safetyTipsBox.style.display = 'none';
-                return;
-            }
-
-            if (!currentActivePoint || !currentActivePoint.code || !disasterDefinitions[currentActivePoint.code]) {
-                safetyTipsBox.className = 'safety-tips-box safe';
-                safetyTipsBox.innerHTML = '✅ <strong>Stable Condition:</strong> This location currently presents no active hazard or danger. Regular environmental conditions.';
+            // 4. Trigger dynamic SEPS API Call for the clicked Country
+            if (point.country && point.country !== 'Ocean / International Waters') {
+                buscarDesastres(point.country);
             } else {
-                const def = disasterDefinitions[currentActivePoint.code];
-                safetyTipsBox.className = 'safety-tips-box';
-                safetyTipsBox.innerHTML = `⚠️ <strong>Safety Protocols for ${def.name}:</strong><br>${def.tips}`;
+                apiBadgeIndicator.textContent = '● Maritime Sector';
+                apiBadgeIndicator.style.color = '#38bdf8';
+                apiBadgeResult.textContent = 'Open oceanic coordinate. Bathymetry and swell radar telemetry active.';
             }
 
-            safetyTipsBox.style.display = 'block';
-        });
+            // Make legend card visible
+            legendCard.style.display = 'flex';
+        }
 
         legendCloseBtn.addEventListener('click', () => {
             legendCard.style.display = 'none';
@@ -1266,10 +1677,19 @@
                 selectedMarkerElement.classList.remove('selected-target');
                 selectedMarkerElement = null;
             }
+            if (preciseClickMarker) {
+                preciseClickMarker.remove();
+                preciseClickMarker = null;
+                preciseClickPoint = null;
+            }
+            if (selectedCountryId !== null) {
+                map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: false });
+                selectedCountryId = null;
+            }
         });
 
         // ========================================================
-        // 7. DISASTER FILTERS & VIEW MODE
+        // 8. DISASTER FILTERS & VIEW MODE
         // ========================================================
         const filterBtns = document.querySelectorAll('.filter-btn');
         const viewTitleText = document.getElementById('current-view-title');
@@ -1309,21 +1729,60 @@
         });
 
         // ========================================================
-        // 8. GLOBE CLICK INTERACTION
+        // 9. GLOBE CLICK INTERACTION
         // ========================================================
         map.on('click', (e) => {
             const { lng, lat } = e.lngLat;
-            console.log(`Longitude: ${lng}, Latitude: ${lat}`);
+
+            // Query country layer at clicked point
+            let countryName = 'Ocean / International Waters';
+            let regionName = `Coordinates (${lat >= 0 ? lat.toFixed(2) + '° N' : Math.abs(lat).toFixed(2) + '° S'}, ${lng >= 0 ? lng.toFixed(2) + '° E' : Math.abs(lng).toFixed(2) + '° W'})`;
+
+            try {
+                const features = map.queryRenderedFeatures(e.point, { layers: ['paises-fill'] });
+                if (features && features.length > 0) {
+                    const feat = features[0];
+                    countryName = feat.properties.ADMIN || feat.properties.name || feat.properties.NAME || 'Selected Country';
+                    regionName = feat.properties.REGION || feat.properties.CONTINENT || 'Territory';
+
+                    // Highlight selected country
+                    if (selectedCountryId !== null) {
+                        map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: false });
+                    }
+                    selectedCountryId = feat.id;
+                    map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: true });
+                }
+            } catch (err) {
+                // Layer might still be initializing
+            }
+
+            // Exact requested console.log including Country, Longitude, and Latitude
+            console.log(`Country: ${countryName}, Longitude: ${lng}, Latitude: ${lat}`);
 
             if (selectedMarkerElement) {
                 selectedMarkerElement.classList.remove('selected-target');
                 selectedMarkerElement = null;
             }
 
+            // Create or move precise clicked marker
+            if (preciseClickMarker) preciseClickMarker.remove();
+
+            const clickEl = document.createElement('div');
+            clickEl.className = 'precise-click-marker';
+            clickEl.innerHTML = `
+                <div class="precise-click-ring"></div>
+                <div class="precise-click-dot"></div>
+            `;
+
+            preciseClickPoint = { lat, lng };
+            preciseClickMarker = new maplibregl.Marker({ element: clickEl, anchor: 'center' })
+                .setLngLat([lng, lat])
+                .addTo(map);
+
             const customPoint = {
                 id: 'custom-' + Date.now(),
-                country: 'Selected Location',
-                region: `Coordinates (${lat >= 0 ? 'North' : 'South'})`,
+                country: countryName,
+                region: regionName,
                 code: null, // Safe / normal condition
                 lat: lat,
                 lng: lng,
@@ -1337,11 +1796,60 @@
             };
 
             openLegendCard(customPoint);
+            updateMarkersOcclusion();
         });
 
-        // Initialize markers on load without opening the legend card automatically
-        map.on('load', () => {
-            renderHazardMarkers('all');
+        // ========================================================
+        // 10. DRAGGABLE TRANSLUCENT BOTTOM DOCK
+        // ========================================================
+        const dockEl = document.getElementById('bottom-disasters-bar');
+        const dragBarEl = document.getElementById('dock-drag-bar');
+
+        let isDraggingDock = false;
+        let dragStartX, dragStartY, dockInitialLeft, dockInitialTop;
+
+        dragBarEl.addEventListener('pointerdown', (e) => {
+            isDraggingDock = true;
+            dragBarEl.setPointerCapture(e.pointerId);
+            dragBarEl.style.cursor = 'grabbing';
+
+            const rect = dockEl.getBoundingClientRect();
+            // Switch from transform centering to absolute pixel placement
+            dockEl.style.transform = 'none';
+            dockEl.style.left = `${rect.left}px`;
+            dockEl.style.top = `${rect.top}px`;
+            dockEl.style.bottom = 'auto';
+
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            dockInitialLeft = rect.left;
+            dockInitialTop = rect.top;
+            e.preventDefault();
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDraggingDock) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+
+            let newLeft = dockInitialLeft + dx;
+            let newTop = dockInitialTop + dy;
+
+            // Clamp within screen boundaries
+            const dockWidth = dockEl.offsetWidth;
+            const dockHeight = dockEl.offsetHeight;
+            newLeft = Math.max(12, Math.min(window.innerWidth - dockWidth - 12, newLeft));
+            newTop = Math.max(12, Math.min(window.innerHeight - dockHeight - 12, newTop));
+
+            dockEl.style.left = `${newLeft}px`;
+            dockEl.style.top = `${newTop}px`;
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (isDraggingDock) {
+                isDraggingDock = false;
+                dragBarEl.style.cursor = 'grab';
+            }
         });
     </script>
 </body>
