@@ -585,80 +585,100 @@
         }
 
         /* ========================================================
-           5. HAZARD EVENT MARKERS & NISAR 3D SATELLITE
+           5. HAZARD POINTS (drawn as WebGL map layers, glued to the globe)
            ======================================================== */
-        .hazard-marker {
-            position: relative;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.2s;
+        .data-status {
+            font-size: 12.5px;
+            color: #94a3b8;
+            background: rgba(4, 12, 28, 0.7);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            border-radius: 8px;
+            padding: 6px 10px;
+            max-width: 420px;
+            line-height: 1.4;
         }
 
-        .hazard-marker:hover {
-            transform: scale(1.35);
+        .data-status.error {
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.45);
         }
 
-        .hazard-marker-inner {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: var(--marker-color, #00e5ff);
-            border: 2px solid #ffffff;
-            box-shadow: 0 0 10px var(--marker-color, #00e5ff);
+        .filter-btn.empty,
+        .disaster-col.empty {
+            opacity: 0.4;
         }
 
-        .hazard-marker-ring {
-            position: absolute;
-            inset: -5px;
-            border-radius: 50%;
-            border: 1.5px solid var(--marker-color, #00e5ff);
-            animation: ringPulse 2s infinite ease-out;
-        }
-
-        .hazard-marker.selected-target .hazard-marker-ring {
-            inset: -14px;
-            border: 2.5px solid #00e5ff;
-            box-shadow: 0 0 16px #00e5ff;
-            animation: none;
-        }
-
-        @keyframes ringPulse {
-            0% {
-                transform: scale(0.9);
-                opacity: 0.9;
-            }
-
-            100% {
-                transform: scale(2.2);
-                opacity: 0;
-            }
-        }
-
-        /* Precise Click Target Marker */
-        .precise-click-marker {
-            position: relative;
-            width: 22px;
-            height: 22px;
+        .maplibregl-popup.hazard-popup .maplibregl-popup-content {
+            background: rgba(3, 9, 24, 0.94);
+            border: 1px solid rgba(0, 229, 255, 0.45);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 12.5px;
+            padding: 7px 10px;
+            box-shadow: 0 6px 22px rgba(0, 0, 0, 0.8);
             pointer-events: none;
         }
 
-        .precise-click-ring {
-            position: absolute;
-            inset: -6px;
-            border: 2px solid #00e5ff;
-            border-radius: 50%;
-            animation: ringPulse 1.8s infinite ease-out;
+        .maplibregl-popup.hazard-popup .maplibregl-popup-tip {
+            border-top-color: rgba(0, 229, 255, 0.45);
+            border-bottom-color: rgba(0, 229, 255, 0.45);
         }
 
-        .precise-click-dot {
-            width: 100%;
-            height: 100%;
-            background: #ffffff;
-            border: 3px solid #00e5ff;
-            border-radius: 50%;
-            box-shadow: 0 0 14px #00e5ff;
+        .hazard-popup strong {
+            color: #ffffff;
+        }
+
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .event-link {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--marker-color, #00e5ff);
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 12.5px;
+            text-align: left;
+            padding: 6px 9px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .event-link:hover {
+            background: rgba(0, 229, 255, 0.15);
+        }
+
+        .event-link span {
+            color: #94a3b8;
+        }
+
+        .prob-count {
+            min-width: 30px;
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .sar-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(4, 12, 28, 0.7);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12.5px;
+            color: #cbd5e1;
+            line-height: 1.45;
+        }
+
+        .sar-box .api-badge-header {
+            color: #c4b5fd;
         }
 
         /* 3D NISAR Satellite (Expanded bounds to prevent any clipping) */
@@ -761,6 +781,7 @@
             <button class="filter-btn" data-filter="D05">D05</button>
             <button class="filter-btn" data-filter="D06">D06</button>
         </div>
+        <div class="data-status" id="data-status">Loading events from the Disaster API...</div>
     </section>
 
     <!-- 3. EXPANDED RIGHT LEGEND CARD (DISPLAYS DYNAMICALLY UPON CLICK) -->
@@ -789,7 +810,15 @@
                 <span class="label">Event</span>
                 <span class="val" id="legend-event" style="color: #00e5ff;">D06</span>
             </div>
-            <div class="illustrative-tag">Illustrative and real-time scientific telemetry</div>
+            <div class="coord-row" id="legend-date-row">
+                <span class="label">Date (UTC)</span>
+                <span class="val" id="legend-date">-</span>
+            </div>
+            <div class="coord-row" id="legend-mag-row">
+                <span class="label">Magnitude</span>
+                <span class="val" id="legend-mag">-</span>
+            </div>
+            <div class="illustrative-tag" id="legend-source-tag">Source: NASA EONET via Disaster API</div>
         </div>
 
         <div class="card-divider"></div>
@@ -798,7 +827,7 @@
         <div>
             <div class="section-subheading">
                 <div class="accent-bar" style="height: 15px;"></div>
-                <span>Environmental & Climate News</span>
+                <span id="legend-news-title">Event Summary</span>
             </div>
             <div class="news-box" id="legend-news-box" style="margin-top: 8px;">
                 <!-- Dynamically rendered via JS -->
@@ -824,7 +853,7 @@
         <div>
             <div class="section-subheading">
                 <div class="accent-bar" style="height: 15px;"></div>
-                <span>Regional Hazard Probability</span>
+                <span id="legend-prob-title">Events in this Country</span>
             </div>
 
             <div class="prob-list" id="legend-prob-list">
@@ -835,12 +864,21 @@
         <!-- 3.4 Live SEPS API Communication Badge -->
         <div class="api-status-badge" id="api-status-badge">
             <div class="api-badge-header">
-                <span>🛰️ SEPS API (Live Query)</span>
+                <span>🛰️ Disaster API (Live Query)</span>
                 <span id="api-badge-indicator" style="font-size: 11px;">Connecting...</span>
             </div>
             <div class="api-badge-result" id="api-badge-result">
                 Querying sepsapi.earth endpoint for region records...
             </div>
+        </div>
+
+        <!-- 3.5 NISAR radar coverage for the selected event (GET /api/eventos/{id}/sar/cenas) -->
+        <div class="sar-box" id="sar-box" style="display: none;">
+            <div class="api-badge-header">
+                <span>📡 NISAR Radar (before / after)</span>
+                <span id="sar-indicator" style="font-size: 11px;">-</span>
+            </div>
+            <div id="sar-result">-</div>
         </div>
 
         <a href="https://nisar.jpl.nasa.gov/" target="_blank" rel="noopener noreferrer" class="btn-full-data"
@@ -868,34 +906,34 @@
             </div>
         </div>
         <div class="dock-grid">
-            <div class="disaster-col" data-code="D01" title="Filter by Tsunami (D01)">
-                <div class="disaster-name">Tsunami</div>
-                <div class="disaster-desc">Coastal warnings</div>
+            <div class="disaster-col" data-code="D01" title="Filter by Volcanoes (D01)">
+                <div class="disaster-name">Volcanoes</div>
+                <div class="disaster-desc" data-desc="D01">Eruptions & ash</div>
             </div>
             <div class="disaster-col" data-code="D02" title="Filter by Wildfires (D02)">
                 <div class="disaster-name">Wildfires</div>
-                <div class="disaster-desc">Active hotspots</div>
+                <div class="disaster-desc" data-desc="D02">Active hotspots</div>
             </div>
-            <div class="disaster-col" data-code="D03" title="Filter by Earthquake (D03)">
-                <div class="disaster-name">Earthquake</div>
-                <div class="disaster-desc">Seismic activity</div>
+            <div class="disaster-col" data-code="D03" title="Filter by Earthquakes (D03)">
+                <div class="disaster-name">Earthquakes</div>
+                <div class="disaster-desc" data-desc="D03">Seismic activity</div>
             </div>
-            <div class="disaster-col" data-code="D04" title="Filter by El Niño (D04)">
-                <div class="disaster-name">El Niño</div>
-                <div class="disaster-desc">Climate anomalies</div>
+            <div class="disaster-col" data-code="D04" title="Filter by Landslides (D04)">
+                <div class="disaster-name">Landslides</div>
+                <div class="disaster-desc" data-desc="D04">Slope failures</div>
             </div>
-            <div class="disaster-col" data-code="D05" title="Filter by Storms (D05)">
+            <div class="disaster-col" data-code="D05" title="Filter by Severe Storms (D05)">
                 <div class="disaster-name">Storms</div>
-                <div class="disaster-desc">Wind & precipitation</div>
+                <div class="disaster-desc" data-desc="D05">Wind & precipitation</div>
             </div>
-            <div class="disaster-col" data-code="D06" title="Filter by Flooding (D06)">
+            <div class="disaster-col" data-code="D06" title="Filter by Floods (D06)">
                 <div class="disaster-name">Flooding</div>
-                <div class="disaster-desc">Inundated areas</div>
+                <div class="disaster-desc" data-desc="D06">Inundated areas</div>
             </div>
         </div>
     </nav>
 
-    <!-- MapLibre GL and Three.js Engine for 3D Globe & NISAR Satellite -->
+
     <script type="module">
         import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.18.0/dist/maplibre-gl.mjs';
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
@@ -948,17 +986,25 @@
         drawStars();
 
         // ========================================================
-        // 2. DISASTER DEFINITIONS, NEWS DB & SAFETY TIPS (ENGLISH)
+        // 2. DISASTER API CONFIG & CATEGORY DEFINITIONS
+        // The 6 dock slots (D01..D06) are the 6 categories the Disaster API accepts.
         // ========================================================
+        const API_BASE = 'https://sepsapi.earth';   // API de Desastres Naturais (FastAPI)
+        const API_KEY = 'desastres_naturais';       // header "chave"
+
         const disasterDefinitions = {
             'D01': {
-                name: 'Tsunami',
-                icon: '🌊',
-                color: '#0284c7',
-                desc: 'Coastal warnings',
-                tips: 'Evacuate coastlines immediately to terrain above 30m; await official all-clear.'
+                one: 'volcano',
+                many: 'volcanoes',
+                name: 'Volcanoes',
+                icon: '🌋',
+                color: '#ef4444',
+                desc: 'Eruptions & ash',
+                tips: 'Stay out of exclusion zones, protect lungs and eyes from ash, and keep away from river valleys (lahars).'
             },
             'D02': {
+                one: 'wildfire',
+                many: 'wildfires',
                 name: 'Wildfires',
                 icon: '🔥',
                 color: '#f97316',
@@ -966,176 +1012,199 @@
                 tips: 'Use N95 masks, seal windows, clear a 10m perimeter, and follow evacuation routes.'
             },
             'D03': {
-                name: 'Earthquake',
+                one: 'earthquake',
+                many: 'earthquakes',
+                name: 'Earthquakes',
                 icon: '⚡',
                 color: '#eab308',
                 desc: 'Seismic activity',
                 tips: 'Drop, Cover, and Hold On. Stay clear of glass and isolate master gas valves.'
             },
             'D04': {
-                name: 'El Niño',
-                icon: '🌀',
-                color: '#f43f5e',
-                desc: 'Climate anomalies',
-                tips: 'Follow agro-climatic advisories, conserve water, and clear drainage channels.'
+                one: 'landslide',
+                many: 'landslides',
+                name: 'Landslides',
+                icon: '⛰️',
+                color: '#a3e635',
+                desc: 'Slope failures',
+                tips: 'Leave steep slopes after heavy rain, watch for new cracks or tilting trees, and avoid river channels.'
             },
             'D05': {
-                name: 'Storms',
+                one: 'severe storm',
+                many: 'severe storms',
+                name: 'Severe Storms',
                 icon: '🌪️',
                 color: '#a855f7',
                 desc: 'Wind & precipitation',
                 tips: 'Shelter in interior rooms, avoid tall trees, and disconnect power.'
             },
             'D06': {
-                name: 'Flooding',
+                one: 'flood',
+                many: 'floods',
+                name: 'Floods',
                 icon: '💧',
                 color: '#00e5ff',
                 desc: 'Inundated areas',
                 tips: 'Evacuate low basins early; never walk or drive through moving floodwaters.'
             }
         };
+        const CODES = ['D01', 'D02', 'D03', 'D04', 'D05', 'D06'];
 
-        // Succinct Environmental News Database per Country/Region
-        const countryNewsDB = {
-            'Canada': 'River stage monitoring active in eastern basins; NISAR tracking runoff.',
-            'United States': 'Western wildfire dry fuel watch and coastal storm tracking active.',
-            'Brazil': 'Southern flood crests and Amazon-Cerrado vegetation indices monitored.',
-            'Venezuela': 'Mountain flash-flood alert and savanna hotspot monitoring active.',
-            'Japan': 'Nankai subduction and coastal seismic buoys on active radar surveillance.',
-            'Philippines': 'Philippine Sea tropical disturbance monitored for coastal swells.',
-            'Chile': 'Atacama trench deep seismic activity monitored by radar networks.',
-            'default': 'NASA constellations maintaining continuous radar environmental monitoring.'
-        };
+        // "1 flood event" / "71 flood events"
+        function rotulo(code, n, comNumero = true) {
+            const def = disasterDefinitions[code];
+            const nome = def ? def.one : 'event';
+            const txt = def ? `${nome} event${n === 1 ? '' : 's'}` : `event${n === 1 ? '' : 's'}`;
+            return comNumero ? `${n} ${txt}` : txt;
+        }
 
-        // GLOBAL HAZARD DATASET
-        const globalHazardPoints = [
-            {
-                id: 'ca-novascotia',
-                country: 'Canada',
-                region: 'Nova Scotia',
-                code: 'D06',
-                lat: 45.62,
-                lng: -63.31,
-                probs: { 'D01': 8, 'D02': 3, 'D03': 4, 'D04': 8, 'D06': 9 }
-            },
-            {
-                id: 'ca-ontario',
-                country: 'Canada',
-                region: 'Ontario / Great Lakes',
-                code: 'D06',
-                lat: 44.20,
-                lng: -79.40,
-                probs: { 'D01': 2, 'D02': 4, 'D03': 2, 'D04': 7, 'D06': 8 }
-            },
-            {
-                id: 'us-east',
-                country: 'United States',
-                region: 'New York / Atlantic Coast',
-                code: 'D06',
-                lat: 40.71,
-                lng: -74.00,
-                probs: { 'D01': 5, 'D02': 2, 'D03': 3, 'D04': 6, 'D06': 8 }
-            },
-            {
-                id: 'us-rockies',
-                country: 'United States',
-                region: 'Colorado Rockies',
-                code: 'D06',
-                lat: 39.55,
-                lng: -105.78,
-                probs: { 'D01': 1, 'D02': 7, 'D03': 3, 'D04': 5, 'D06': 7 }
-            },
-            {
-                id: 'us-california',
-                country: 'United States',
-                region: 'California (Sierra Nevada)',
-                code: 'D02',
-                lat: 36.77,
-                lng: -119.41,
-                probs: { 'D01': 4, 'D02': 9, 'D03': 8, 'D04': 6, 'D06': 3 }
-            },
-            {
-                id: 'us-sanandreas',
-                country: 'United States',
-                region: 'San Andreas Fault Zone',
-                code: 'D03',
-                lat: 35.12,
-                lng: -119.55,
-                probs: { 'D01': 5, 'D02': 6, 'D03': 9, 'D04': 5, 'D06': 2 }
-            },
-            {
-                id: 'br-amazonia',
-                country: 'Brazil',
-                region: 'Amazonas / Manaus Basin',
-                code: 'D02',
-                lat: -3.11,
-                lng: -60.02,
-                probs: { 'D01': 1, 'D02': 9, 'D03': 2, 'D04': 8, 'D06': 7 }
-            },
-            {
-                id: 'br-rs',
-                country: 'Brazil',
-                region: 'Rio Grande do Sul (Porto Alegre)',
-                code: 'D06',
-                lat: -30.03,
-                lng: -51.22,
-                probs: { 'D01': 3, 'D02': 2, 'D03': 1, 'D04': 9, 'D06': 9 }
-            },
-            {
-                id: 'pac-elnino-1',
-                country: 'Pacific Ocean',
-                region: 'Niño 3.4 SST Anomaly Zone',
-                code: 'D04',
-                lat: 0.00,
-                lng: -140.00,
-                probs: { 'D01': 7, 'D02': 1, 'D03': 4, 'D04': 10, 'D06': 6 }
-            },
-            {
-                id: 'pac-elnino-2',
-                country: 'Pacific Ocean',
-                region: 'Galapagos / Eastern Pacific Upwelling',
-                code: 'D04',
-                lat: -4.50,
-                lng: -85.00,
-                probs: { 'D01': 8, 'D02': 2, 'D03': 6, 'D04': 9, 'D06': 7 }
-            },
-            {
-                id: 'jp-tsunami',
-                country: 'Japan',
-                region: 'Honshu Coast / Japan Trench',
-                code: 'D01',
-                lat: 38.32,
-                lng: 142.36,
-                probs: { 'D01': 9, 'D02': 1, 'D03': 9, 'D04': 4, 'D06': 6 }
-            },
-            {
-                id: 'us-gulf-storm',
-                country: 'United States',
-                region: 'Gulf of Mexico / Coastal Louisiana',
-                code: 'D05',
-                lat: 28.50,
-                lng: -90.50,
-                probs: { 'D01': 6, 'D02': 2, 'D03': 1, 'D04': 7, 'D06': 8 }
-            },
-            {
-                id: 'ph-storm',
-                country: 'Philippines',
-                region: 'Philippine Sea Basin',
-                code: 'D05',
-                lat: 14.20,
-                lng: 125.00,
-                probs: { 'D01': 8, 'D02': 1, 'D03': 7, 'D04': 8, 'D06': 9 }
-            },
-            {
-                id: 'cl-earthquake',
-                country: 'Chile',
-                region: 'Valparaíso / Subduction Margin',
-                code: 'D03',
-                lat: -33.04,
-                lng: -71.61,
-                probs: { 'D01': 8, 'D02': 5, 'D03': 9, 'D04': 5, 'D06': 3 }
+        // API category (EONET/USGS) -> dock code. null = category not shown in the dock.
+        function codigoDaCategoria(categoria) {
+            const c = String(categoria || '').toLowerCase();
+            if (c.includes('volcan')) return 'D01';
+            if (c.includes('wildfire') || c.includes('fire')) return 'D02';
+            if (c.includes('earthquake')) return 'D03';
+            if (c.includes('landslide')) return 'D04';
+            if (c.includes('storm')) return 'D05';
+            if (c.includes('flood')) return 'D06';
+            return null;
+        }
+
+        // Escape anything that comes from the API before putting it in innerHTML
+        function esc(v) {
+            return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+
+        async function apiFetch(path, { method = 'GET', body } = {}) {
+            const headers = { 'chave': API_KEY };
+            if (body !== undefined) headers['content-type'] = 'application/json';
+            const res = await fetch(API_BASE + path, {
+                method,
+                headers,
+                body: body !== undefined ? JSON.stringify(body) : undefined
+            });
+            if (!res.ok) {
+                let detail = '';
+                try {
+                    const j = await res.json();
+                    detail = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
+                } catch (e) { /* body was not JSON */ }
+                throw new Error(`HTTP ${res.status}${detail ? ' - ' + detail : ''}`);
             }
-        ];
+            return res.json();
+        }
+
+        // ========================================================
+        // 2.1 EVENT NORMALIZATION (API record -> point on the globe)
+        // ========================================================
+        let allEvents = [];               // every event returned by the API
+        const eventsById = new Map();     // record_id -> event
+        let countriesData = null;         // country polygons (for the country of each event)
+        let countryBoxes = [];            // [minLon, minLat, maxLon, maxLat] per country feature
+        let activeFilter = 'all';
+        let selectedRecordId = null;
+
+        function normalizarEvento(r) {
+            const lat = parseFloat(r.lat ?? r.Latitude);
+            let lon = parseFloat(r.lon ?? r.Longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90) return null;
+            lon = ((lon + 180) % 360 + 360) % 360 - 180;   // always -180..180
+
+            const time = r.event_time_utc || r.Data_Desastre || null;
+            const categoria = r.category || r.Categoria || 'Unknown';
+            const recordId = r.record_id || `${r.event_id || r.ID_Desastre || r.title}@${time}`;
+            return {
+                record_id: recordId,
+                event_id: r.event_id || r.ID_Desastre || recordId,
+                title: r.title || r.Titulo || 'Event',
+                category: categoria,
+                code: codigoDaCategoria(categoria),
+                time,
+                lat,
+                lon,
+                magnitude_value: (typeof r.magnitude_value === 'number') ? r.magnitude_value : null,
+                magnitude_unit: r.magnitude_unit || null,
+                source: r.source || 'eonet',
+                country: null
+            };
+        }
+
+        // ========================================================
+        // 2.2 POINT-IN-POLYGON (country of each event, no extra library)
+        // ========================================================
+        function nomeDoPais(feature) {
+            const p = feature.properties || {};
+            return p.ADMIN || p.name || p.NAME || p.NAME_EN || 'Unknown';
+        }
+
+        function caixaDaGeometria(geom) {
+            let x0 = 180, y0 = 90, x1 = -180, y1 = -90;
+            const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
+            polys.forEach(poly => (poly[0] || []).forEach(([x, y]) => {
+                if (x < x0) x0 = x; if (x > x1) x1 = x;
+                if (y < y0) y0 = y; if (y > y1) y1 = y;
+            }));
+            return [x0, y0, x1, y1];
+        }
+
+        function pontoNoAnel(lon, lat, ring) {
+            let dentro = false;
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                const [xi, yi] = ring[i];
+                const [xj, yj] = ring[j];
+                if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) dentro = !dentro;
+            }
+            return dentro;
+        }
+
+        function pontoNaGeometria(lon, lat, geom) {
+            if (!geom) return false;
+            const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
+            return polys.some(poly => poly.length && pontoNoAnel(lon, lat, poly[0]) &&
+                !poly.slice(1).some(hole => pontoNoAnel(lon, lat, hole)));
+        }
+
+        function paisDoPonto(lon, lat) {
+            if (!countriesData) return null;
+            for (let i = 0; i < countriesData.features.length; i++) {
+                const b = countryBoxes[i];
+                if (!b || lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3]) continue;
+                if (pontoNaGeometria(lon, lat, countriesData.features[i].geometry)) return countriesData.features[i];
+            }
+            return null;
+        }
+
+        // Coastal points can fall just offshore of the polygon: take the nearest
+        // country whose border is within ~0.5° (~50 km).
+        function paisMaisProximo(lon, lat, maxGraus = 0.5) {
+            if (!countriesData) return null;
+            let best = null, bestD = maxGraus * maxGraus;
+            countriesData.features.forEach((f, i) => {
+                const b = countryBoxes[i];
+                if (!b || lon < b[0] - maxGraus || lon > b[2] + maxGraus || lat < b[1] - maxGraus || lat > b[3] + maxGraus) return;
+                const g = f.geometry;
+                const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+                polys.forEach(poly => (poly[0] || []).forEach(([x, y]) => {
+                    const d = (x - lon) ** 2 + (y - lat) ** 2;
+                    if (d < bestD) { bestD = d; best = f; }
+                }));
+            });
+            return best;
+        }
+
+        // Fills event.country and marks countries that have events (red highlight on hover)
+        function atribuirPaises() {
+            if (!countriesData || !allEvents.length) return;
+            const comEventos = new Set();
+            allEvents.forEach(ev => {
+                const f = paisDoPonto(ev.lon, ev.lat) || paisMaisProximo(ev.lon, ev.lat);
+                ev.country = f ? nomeDoPais(f) : null;
+                if (f) comEventos.add(f.id);
+            });
+            countriesData.features.forEach(f => { f.properties._isAlert = comEventos.has(f.id); });
+            const src = map.getSource('paises-source');
+            if (src) src.setData(countriesData);
+        }
 
         // ========================================================
         // 3. 3D GLOBE INITIALIZATION (ATTRIBUTION HIDDEN, ELEVATED CENTER)
@@ -1143,7 +1212,7 @@
         const map = new maplibregl.Map({
             container: 'map',
             zoom: 2.02,
-            center: [-65.0, 10.0],
+            center: [-62.0, -12.0],
             pitch: 12,
             maxPitch: 85,
             attributionControl: false // Explicitly removes the attribution box
@@ -1190,20 +1259,264 @@
         });
 
         // ========================================================
-        // 4. COUNTRY BOUNDARIES HOVER (LIGHT BLUE) & CLICKS
+        // 3.1 HAZARD LAYERS
+        // The points are WebGL circle layers, not HTML markers: they are drawn on the
+        // globe surface itself (pitch-alignment "map"), follow the terrain, never lag
+        // while rotating and are hidden automatically behind the Earth.
+        // ========================================================
+        const EMPTY_FC = { type: 'FeatureCollection', features: [] };
+        const raioPorZoom = (k = 1) => ['interpolate', ['linear'], ['zoom'], 1, 3.5 * k, 4, 6 * k, 8, 9 * k, 12, 12 * k];
+
+        function geojsonDosEventos() {
+            return {
+                type: 'FeatureCollection',
+                features: allEvents.map(ev => ({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [ev.lon, ev.lat] },
+                    properties: {
+                        record_id: ev.record_id,
+                        code: ev.code || 'none',
+                        color: (disasterDefinitions[ev.code] || { color: '#94a3b8' }).color
+                    }
+                }))
+            };
+        }
+
+        function filtroDeCamada() {
+            return activeFilter === 'all' ? null : ['==', ['get', 'code'], activeFilter];
+        }
+
+        function garantirCamadasDeEventos() {
+            if (map.getSource('hazards')) return;
+
+            map.addSource('hazards', { type: 'geojson', data: allEvents.length ? geojsonDosEventos() : EMPTY_FC });
+            map.addSource('click-point', { type: 'geojson', data: EMPTY_FC });
+
+            // Pulsing halo (animated below)
+            map.addLayer({
+                id: 'hazard-halo',
+                type: 'circle',
+                source: 'hazards',
+                paint: {
+                    'circle-radius': raioPorZoom(1.8),
+                    'circle-color': ['get', 'color'],
+                    'circle-opacity': 0.25,
+                    'circle-blur': 0.6,
+                    'circle-pitch-alignment': 'map'
+                }
+            });
+
+            map.addLayer({
+                id: 'hazard-points',
+                type: 'circle',
+                source: 'hazards',
+                paint: {
+                    'circle-radius': raioPorZoom(1),
+                    'circle-color': ['get', 'color'],
+                    'circle-stroke-color': '#ffffff',
+                    'circle-stroke-width': 1.5,
+                    'circle-pitch-alignment': 'map'
+                }
+            });
+
+            // Ring around the selected event
+            map.addLayer({
+                id: 'hazard-selected',
+                type: 'circle',
+                source: 'hazards',
+                filter: ['==', ['get', 'record_id'], ''],
+                paint: {
+                    'circle-radius': raioPorZoom(2.4),
+                    'circle-color': 'rgba(0,0,0,0)',
+                    'circle-stroke-color': '#00e5ff',
+                    'circle-stroke-width': 2.5,
+                    'circle-pitch-alignment': 'map'
+                }
+            });
+
+            // Exact point clicked on the globe
+            map.addLayer({
+                id: 'click-point-ring',
+                type: 'circle',
+                source: 'click-point',
+                paint: {
+                    'circle-radius': raioPorZoom(2.2),
+                    'circle-color': 'rgba(0,0,0,0)',
+                    'circle-stroke-color': '#00e5ff',
+                    'circle-stroke-width': 2,
+                    'circle-pitch-alignment': 'map'
+                }
+            });
+            map.addLayer({
+                id: 'click-point-dot',
+                type: 'circle',
+                source: 'click-point',
+                paint: {
+                    'circle-radius': raioPorZoom(1.1),
+                    'circle-color': '#ffffff',
+                    'circle-stroke-color': '#00e5ff',
+                    'circle-stroke-width': 3,
+                    'circle-pitch-alignment': 'map'
+                }
+            });
+
+            aplicarFiltroNasCamadas();
+            marcarSelecionado(selectedRecordId);
+        }
+
+        function atualizarFonteDeEventos() {
+            const src = map.getSource('hazards');
+            if (src) src.setData(geojsonDosEventos());
+        }
+
+        function aplicarFiltroNasCamadas() {
+            if (!map.getLayer('hazard-points')) return;
+            const f = filtroDeCamada();
+            map.setFilter('hazard-points', f);
+            map.setFilter('hazard-halo', f);
+        }
+
+        function marcarSelecionado(recordId) {
+            selectedRecordId = recordId;
+            if (map.getLayer('hazard-selected')) {
+                map.setFilter('hazard-selected', ['==', ['get', 'record_id'], recordId || '']);
+            }
+        }
+
+        function marcarPontoClicado(lng, lat) {
+            const src = map.getSource('click-point');
+            if (!src) return;
+            src.setData(lng === null ? EMPTY_FC : {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [lng, lat] }, properties: {} }]
+            });
+        }
+
+        // Halo pulse (~30 fps, one paint update for all points)
+        let ultimoPulso = 0;
+        function animarHalo(t) {
+            if (t - ultimoPulso > 33 && map.getLayer('hazard-halo')) {
+                ultimoPulso = t;
+                const p = (t % 2200) / 2200;
+                map.setPaintProperty('hazard-halo', 'circle-radius', raioPorZoom(1.2 + 1.4 * p));
+                map.setPaintProperty('hazard-halo', 'circle-opacity', 0.45 * (1 - p));
+            }
+            requestAnimationFrame(animarHalo);
+        }
+        requestAnimationFrame(animarHalo);
+
+        // ========================================================
+        // 3.2 LOAD EVENTS FROM THE DISASTER API (GET /api/dados)
+        // ========================================================
+        const dataStatusEl = document.getElementById('data-status');
+
+        const MESES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        function fmtData(iso, comHora = true) {
+            const d = new Date(iso);
+            if (!iso || isNaN(d)) return '-';
+            const p2 = n => String(n).padStart(2, '0');
+            const dia = `${p2(d.getUTCDate())} ${MESES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+            return comHora ? `${dia}, ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())} UTC` : dia;
+        }
+
+        function fmtMagnitude(ev) {
+            if (ev.magnitude_value === null) return '-';
+            const unit = String(ev.magnitude_unit || '').toLowerCase();
+            if (unit.startsWith('hectare')) return `${Math.round(ev.magnitude_value).toLocaleString('en-US')} ha`;
+            return `${ev.magnitude_value}${ev.magnitude_unit ? ' ' + ev.magnitude_unit : ''}`;
+        }
+
+        async function carregarEventos() {
+            dataStatusEl.classList.remove('error');
+            dataStatusEl.textContent = 'Loading events from the Disaster API...';
+            try {
+                const data = await apiFetch('/api/dados');
+                const brutos = Array.isArray(data.dados) ? data.dados : [];
+
+                allEvents = [];
+                eventsById.clear();
+                for (const r of brutos) {
+                    const ev = normalizarEvento(r);
+                    if (ev && !eventsById.has(ev.record_id)) {
+                        allEvents.push(ev);
+                        eventsById.set(ev.record_id, ev);
+                    }
+                }
+                console.log(`Disaster API: ${allEvents.length} of ${brutos.length} records have valid coordinates`);
+
+                atribuirPaises();
+                atualizarFonteDeEventos();
+                atualizarContagens();
+                atualizarStatusDosDados();
+
+                // Frame the globe on where the events are (once)
+                if (allEvents.length) {
+                    const bounds = new maplibregl.LngLatBounds();
+                    allEvents.forEach(ev => bounds.extend([ev.lon, ev.lat]));
+                    map.fitBounds(bounds, { padding: { top: 120, bottom: 160, left: 60, right: 60 }, maxZoom: 2.6, duration: 1600 });
+                }
+            } catch (err) {
+                console.error('Disaster API failed:', err);
+                dataStatusEl.classList.add('error');
+                dataStatusEl.innerHTML = `Disaster API unavailable (${esc(err.message)}). <a href="#" id="retry-load" style="color:#00e5ff">Retry</a>`;
+                document.getElementById('retry-load').addEventListener('click', (e) => { e.preventDefault(); carregarEventos(); });
+            }
+        }
+
+        function eventosVisiveis() {
+            return activeFilter === 'all' ? allEvents : allEvents.filter(ev => ev.code === activeFilter);
+        }
+
+        function atualizarStatusDosDados() {
+            if (!allEvents.length) {
+                dataStatusEl.textContent = 'The Disaster API returned no events.';
+                return;
+            }
+            const lista = eventosVisiveis();
+            const times = allEvents.map(ev => ev.time).filter(Boolean).sort();
+            const periodo = `${fmtData(times[0], false)} - ${fmtData(times[times.length - 1], false)}`;
+            if (activeFilter === 'all') {
+                dataStatusEl.textContent = `${allEvents.length} events · NASA EONET · ${periodo}`;
+            } else if (lista.length) {
+                dataStatusEl.textContent = `${rotulo(activeFilter, lista.length)} · ${periodo}`;
+            } else {
+                dataStatusEl.textContent = `No ${rotulo(activeFilter, 0, false)} in the current dataset (${periodo}). The API supports this category, but EONET has none in this window.`;
+            }
+        }
+
+        function atualizarContagens() {
+            const cont = Object.fromEntries(CODES.map(c => [c, 0]));
+            allEvents.forEach(ev => { if (ev.code) cont[ev.code]++; });
+
+            document.querySelectorAll('.disaster-desc[data-desc]').forEach(el => {
+                const code = el.getAttribute('data-desc');
+                el.textContent = `${cont[code]} event${cont[code] === 1 ? '' : 's'}`;
+            });
+            document.querySelectorAll('.disaster-col').forEach(col => {
+                col.classList.toggle('empty', cont[col.getAttribute('data-code')] === 0);
+            });
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                const code = btn.getAttribute('data-filter');
+                if (code === 'all') {
+                    btn.title = `All events (${allEvents.length})`;
+                } else {
+                    btn.title = `${disasterDefinitions[code].name} (${cont[code]})`;
+                    btn.classList.toggle('empty', cont[code] === 0);
+                }
+            });
+        }
+
+        // ========================================================
+        // 4. COUNTRY BOUNDARIES HOVER (LIGHT BLUE) & EVENT LAYERS
         // ========================================================
         let hoveredCountryId = null;
         let selectedCountryId = null;
 
-        const alertCountryNames = {
-            'Brazil': true, 'Canada': true, 'United States of America': true,
-            'United States': true, 'Chile': true, 'Japan': true,
-            'Philippines': true, 'Venezuela': true
-        };
-
         map.on('load', async () => {
+            // Event layers first, so the points appear as soon as the API answers
+            garantirCamadasDeEventos();
+
             try {
-                let countriesData = null;
                 // Attempt local load first, then fallback
                 try {
                     const localRes = await fetch('./countries.geojson');
@@ -1219,10 +1532,11 @@
 
                 if (countriesData && countriesData.features) {
                     countriesData.features.forEach((feature, index) => {
-                        const name = feature.properties.ADMIN || feature.properties.name || '';
                         feature.id = index + 1;
-                        feature.properties._isAlert = alertCountryNames.hasOwnProperty(name);
+                        feature.properties = feature.properties || {};
+                        feature.properties._isAlert = false;
                     });
+                    countryBoxes = countriesData.features.map(f => f.geometry ? caixaDaGeometria(f.geometry) : null);
 
                     map.addSource('paises-source', {
                         type: 'geojson',
@@ -1230,7 +1544,7 @@
                         generateId: false
                     });
 
-                    // Fill layer with light blue hover (#00e5ff) and red if alert country
+                    // Fill layer with light blue hover (#00e5ff); red if the country has events in the API
                     map.addLayer({
                         id: 'paises-fill',
                         type: 'fill',
@@ -1251,7 +1565,7 @@
                                 0
                             ]
                         }
-                    });
+                    }, 'hazard-halo'); // countries stay BELOW the event points
 
                     // Outline layer
                     map.addLayer({
@@ -1277,13 +1591,13 @@
                             ],
                             'line-opacity': 0.95
                         }
-                    });
+                    }, 'hazard-halo');
+
+                    atribuirPaises();
                 }
             } catch (err) {
                 console.error('Error setting up country boundaries layer:', err);
             }
-
-            renderHazardMarkers('all');
         });
 
         // Country Hover Interactions (Restores light blue highlight on mouseover)
@@ -1306,6 +1620,36 @@
                 hoveredCountryId = null;
             }
         });
+
+        // Event hover: tooltip with title and date
+        const hoverPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'hazard-popup', offset: 12 });
+
+        map.on('mousemove', 'hazard-points', (e) => {
+            const f = e.features && e.features[0];
+            const ev = f && eventsById.get(f.properties.record_id);
+            if (!ev) return;
+            map.getCanvas().style.cursor = 'pointer';
+            const def = disasterDefinitions[ev.code];
+            hoverPopup
+                .setLngLat([ev.lon, ev.lat])
+                .setHTML(`<strong>${esc(ev.title)}</strong><br>${def ? def.icon + ' ' + esc(def.name) + ' · ' : ''}${esc(fmtData(ev.time, false))}`)
+                .addTo(map);
+        });
+
+        map.on('mouseleave', 'hazard-points', () => {
+            map.getCanvas().style.cursor = '';
+            hoverPopup.remove();
+        });
+
+        function selecionarPais(featureId) {
+            if (selectedCountryId !== null) {
+                map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: false });
+            }
+            selectedCountryId = featureId;
+            if (featureId !== null) {
+                map.setFeatureState({ source: 'paises-source', id: featureId }, { selected: true });
+            }
+        }
 
         // ========================================================
         // 5. 3D NISAR SATELLITE (ADJUSTED MARGINS, ZERO CLIPPING)
@@ -1425,48 +1769,15 @@
         }
         updateNisarOrbit();
 
-        // ========================================================
-        // 6. HAZARD MARKERS & MATHEMATICAL HORIZON OCCLUSION CULLING
-        // Eliminates points floating in space by hiding points behind the Earth limb
-        // ========================================================
-        const mapMarkerInstances = [];
-        let selectedMarkerElement = null;
 
-        let preciseClickMarker = null;
-        let preciseClickPoint = null;
-
+        // ========================================================
+        // 6. NISAR SATELLITE HORIZON CULLING
+        // (event points are map layers now: the globe hides them by itself)
+        // ========================================================
         function updateMarkersOcclusion() {
             const center = map.getCenter();
             const cLatRad = center.lat * (Math.PI / 180);
             const cLngRad = center.lng * (Math.PI / 180);
-
-            // 6.1 Check each hazard marker
-            mapMarkerInstances.forEach(({ point, element }) => {
-                const mLatRad = point.lat * (Math.PI / 180);
-                const mLngRad = point.lng * (Math.PI / 180);
-                // Angular distance cosine: cos(dist) = sin(cLat)*sin(mLat) + cos(cLat)*cos(mLat)*cos(mLng - cLng)
-                const cosDist = Math.sin(cLatRad) * Math.sin(mLatRad) +
-                    Math.cos(cLatRad) * Math.cos(mLatRad) * Math.cos(mLngRad - cLngRad);
-
-                // If cosDist < 0.12, the point is on the far hemisphere behind the horizon
-                if (cosDist < 0.12) {
-                    element.style.display = 'none';
-                } else {
-                    element.style.display = 'block';
-                }
-            });
-
-            // 6.2 Check precise click marker if active
-            if (preciseClickPoint && preciseClickMarker) {
-                const pLatRad = preciseClickPoint.lat * (Math.PI / 180);
-                const pLngRad = preciseClickPoint.lng * (Math.PI / 180);
-                const cosDist = Math.sin(cLatRad) * Math.sin(pLatRad) +
-                    Math.cos(cLatRad) * Math.cos(pLatRad) * Math.cos(pLngRad - cLngRad);
-                const el = preciseClickMarker.getElement();
-                if (el) el.style.display = (cosDist < 0.12) ? 'none' : 'block';
-            }
-
-            // 6.3 Check NISAR satellite horizon visibility
             const nLatRad = currentNisarLat * (Math.PI / 180);
             const nLngRad = currentNisarLng * (Math.PI / 180);
             const nisarCos = Math.sin(cLatRad) * Math.sin(nLatRad) +
@@ -1478,46 +1789,8 @@
         map.on('move', updateMarkersOcclusion);
         map.on('render', updateMarkersOcclusion);
 
-        function renderHazardMarkers(filterCode = 'all') {
-            mapMarkerInstances.forEach(m => m.marker.remove());
-            mapMarkerInstances.length = 0;
-
-            globalHazardPoints.forEach(point => {
-                if (filterCode !== 'all' && point.code !== filterCode) {
-                    return;
-                }
-
-                const def = disasterDefinitions[point.code] || { color: '#00e5ff' };
-                const el = document.createElement('div');
-                el.className = 'hazard-marker';
-                el.style.setProperty('--marker-color', def.color);
-                el.innerHTML = `
-                    <div class="hazard-marker-ring"></div>
-                    <div class="hazard-marker-inner"></div>
-                `;
-
-                const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-                    .setLngLat([point.lng, point.lat])
-                    .addTo(map);
-
-                el.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (selectedMarkerElement) selectedMarkerElement.classList.remove('selected-target');
-                    el.classList.add('selected-target');
-                    selectedMarkerElement = el;
-
-                    openLegendCard(point);
-                    map.flyTo({ center: [point.lng, point.lat], zoom: 4.2, pitch: 30, essential: true });
-                });
-
-                mapMarkerInstances.push({ point, marker, element: el });
-            });
-
-            updateMarkersOcclusion();
-        }
-
         // ========================================================
-        // 7. EXPANDED RIGHT LEGEND CARD & DYNAMIC SEPS API INTEGRATION
+        // 7. RIGHT LEGEND CARD (EVENT / COUNTRY) WITH LIVE API DATA
         // ========================================================
         const legendCard = document.getElementById('right-legend-card');
         const legendCountryEl = document.getElementById('legend-country');
@@ -1525,16 +1798,26 @@
         const legendLatEl = document.getElementById('legend-lat');
         const legendLngEl = document.getElementById('legend-lng');
         const legendEventEl = document.getElementById('legend-event');
+        const legendDateRow = document.getElementById('legend-date-row');
+        const legendDateEl = document.getElementById('legend-date');
+        const legendMagRow = document.getElementById('legend-mag-row');
+        const legendMagEl = document.getElementById('legend-mag');
+        const legendSourceTag = document.getElementById('legend-source-tag');
+        const legendNewsTitle = document.getElementById('legend-news-title');
         const legendNewsBox = document.getElementById('legend-news-box');
         const legendProtectionTitle = document.getElementById('legend-protection-title');
         const legendSafetyTipsBox = document.getElementById('legend-safety-tips-box');
+        const legendProbTitle = document.getElementById('legend-prob-title');
         const legendProbList = document.getElementById('legend-prob-list');
         const legendCloseBtn = document.getElementById('legend-close-btn');
 
         const apiBadgeIndicator = document.getElementById('api-badge-indicator');
         const apiBadgeResult = document.getElementById('api-badge-result');
+        const sarBox = document.getElementById('sar-box');
+        const sarIndicator = document.getElementById('sar-indicator');
+        const sarResult = document.getElementById('sar-result');
 
-        let currentActivePoint = null;
+        let cardToken = 0;   // ignores slow responses from a previous click
 
         function formatLatCustom(lat) {
             const abs = Math.abs(lat).toFixed(2);
@@ -1554,163 +1837,297 @@
             return html;
         }
 
-        // DYNAMIC SEPS API COMMUNICATION
-        async function buscarDesastres(termoPais) {
-            const url = "https://sepsapi.earth/api/filtrar";
-
-            const payload = {
-                termo_titulo: termoPais,
-                data_inicio: "2026-01-01",
-                data_fim: "2026-11-14"
-            };
-
-            apiBadgeIndicator.textContent = 'Querying API...';
-            apiBadgeIndicator.style.color = '#38bdf8';
-            apiBadgeResult.textContent = `Connecting to sepsapi.earth for "${termoPais}"...`;
-
-            try {
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "accept": "*/*",
-                        "accept-language": "en-US,en;q=0.9,pt;q=0.8",
-                        "chave": "desastres_naturais",
-                        "content-type": "application/json",
-                        "Referer": "https://sepsapi.earth/docs"
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                console.log(`Resposta da API para "${termoPais}":`, data);
-
-                if (data && data.total_encontrado > 0) {
-                    apiBadgeIndicator.textContent = `● Active (${data.total_encontrado} records)`;
-                    apiBadgeIndicator.style.color = '#22c55e';
-                    const latest = data.resultados[0];
-                    const eventDate = latest.Data_Desastre ? new Date(latest.Data_Desastre).toLocaleDateString() : 'Recent';
-                    apiBadgeResult.innerHTML = `<strong>${latest.Categoria || 'Alert'}:</strong> ${latest.Titulo} <span style="opacity:0.7">(${eventDate})</span>`;
-                } else {
-                    apiBadgeIndicator.textContent = '● 0 Records';
-                    apiBadgeIndicator.style.color = '#94a3b8';
-                    apiBadgeResult.textContent = `No active emergency records in database for "${termoPais}" in selected window.`;
-                }
-
-                return data;
-            } catch (error) {
-                console.error("Falha na requisição:", error.message);
-                apiBadgeIndicator.textContent = '● Offline / Local';
-                apiBadgeIndicator.style.color = '#f59e0b';
-                apiBadgeResult.textContent = `API query notice: Using local telemetry & satellite datasets.`;
-                return null;
-            }
+        function setBadge(texto, cor, resultadoHtml) {
+            apiBadgeIndicator.textContent = texto;
+            apiBadgeIndicator.style.color = cor;
+            apiBadgeResult.innerHTML = resultadoHtml;
         }
 
-        function openLegendCard(point) {
-            currentActivePoint = point;
-            legendCountryEl.textContent = point.country;
-            legendRegionEl.textContent = point.region;
-            legendLatEl.textContent = formatLatCustom(point.lat);
-            legendLngEl.textContent = formatLngCustom(point.lng);
-            legendEventEl.textContent = point.code || 'Stable';
-
-            const def = disasterDefinitions[point.code] || { color: '#00e5ff' };
-            legendEventEl.style.color = def.color;
-
-            // 1. Succinct News Update
-            const newsText = countryNewsDB[point.country] || countryNewsDB['default'];
-            legendNewsBox.innerHTML = `📰 ${newsText}`;
-
-            // 2. Civil Defense & Protection Tips
-            if (point.code && disasterDefinitions[point.code]) {
-                const alertDef = disasterDefinitions[point.code];
-                legendProtectionTitle.textContent = `Protection Tips: ${alertDef.name}`;
-                legendSafetyTipsBox.className = 'safety-tips-box';
-                legendSafetyTipsBox.innerHTML = `⚠️ <strong>Protocol:</strong> ${alertDef.tips}`;
-            } else {
-                legendProtectionTitle.textContent = 'Civil Defense & Safety Guidelines';
-                legendSafetyTipsBox.className = 'safety-tips-box safe';
-                legendSafetyTipsBox.innerHTML = `✅ <strong>Stable Condition:</strong> No active severe alerts. Standard regional protocols apply.`;
-            }
-
-            // 3. Render Regional Hazard Probabilities
-            const probs = point.probs || { 'D01': 1, 'D02': 1, 'D03': 1, 'D04': 2, 'D06': 1 };
+        // Category counts (dots scaled to the largest count, at least 1 dot if > 0)
+        function renderContagens(eventos, titulo) {
+            legendProbTitle.textContent = titulo;
+            const cont = Object.fromEntries(CODES.map(c => [c, 0]));
+            eventos.forEach(ev => { if (ev.code) cont[ev.code]++; });
+            const max = Math.max(1, ...Object.values(cont));
             legendProbList.innerHTML = '';
-            const orderedCodes = ['D01', 'D02', 'D03', 'D04', 'D06'];
-            orderedCodes.forEach(code => {
-                const itemDef = disasterDefinitions[code];
-                const score = probs[code] || 1;
+            CODES.forEach(code => {
+                const def = disasterDefinitions[code];
+                const n = cont[code];
+                const score = n ? Math.max(1, Math.round((n / max) * 10)) : 0;
                 const row = document.createElement('div');
                 row.className = 'prob-item';
                 row.innerHTML = `
                     <div class="prob-name-group">
-                        <span>${itemDef.icon}</span>
-                        <span>${itemDef.name}</span>
+                        <span>${def.icon}</span>
+                        <span>${def.name}</span>
                     </div>
                     <div class="prob-dots-group">
                         ${renderProbDots(score)}
+                        <span class="prob-count">${n}</span>
                     </div>
                 `;
                 legendProbList.appendChild(row);
             });
-
-            // 4. Trigger dynamic SEPS API Call for the clicked Country
-            if (point.country && point.country !== 'Ocean / International Waters') {
-                buscarDesastres(point.country);
-            } else {
-                apiBadgeIndicator.textContent = '● Maritime Sector';
-                apiBadgeIndicator.style.color = '#38bdf8';
-                apiBadgeResult.textContent = 'Open oceanic coordinate. Bathymetry and swell radar telemetry active.';
-            }
-
-            // Make legend card visible
-            legendCard.style.display = 'flex';
         }
 
-        legendCloseBtn.addEventListener('click', () => {
-            legendCard.style.display = 'none';
-            if (selectedMarkerElement) {
-                selectedMarkerElement.classList.remove('selected-target');
-                selectedMarkerElement = null;
-            }
-            if (preciseClickMarker) {
-                preciseClickMarker.remove();
-                preciseClickMarker = null;
-                preciseClickPoint = null;
-            }
-            if (selectedCountryId !== null) {
-                map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: false });
-                selectedCountryId = null;
-            }
+        // Clickable list of events (most recent first)
+        function renderListaDeEventos(eventos, limite = 5) {
+            if (!eventos.length) return '';
+            const itens = [...eventos]
+                .sort((a, b) => String(b.time).localeCompare(String(a.time)))
+                .slice(0, limite)
+                .map(ev => {
+                    const def = disasterDefinitions[ev.code] || { color: '#94a3b8', icon: '•' };
+                    return `<button class="event-link" data-record="${esc(ev.record_id)}" style="--marker-color:${def.color}">
+                        ${def.icon} ${esc(ev.title)} <span>· ${esc(fmtData(ev.time, false))}</span></button>`;
+                }).join('');
+            return `<div class="event-list">${itens}</div>`;
+        }
+
+        legendCard.addEventListener('click', (e) => {
+            const btn = e.target.closest('.event-link');
+            if (!btn) return;
+            const ev = eventsById.get(btn.getAttribute('data-record'));
+            if (ev) selecionarEvento(ev);
         });
 
+        function mostrarCard() {
+            legendCard.style.display = 'flex';
+            legendCard.scrollTop = 0;
+        }
+
+        // ---------- 7.1 Card for ONE EVENT (clicked point) ----------
+        function abrirCardDoEvento(ev) {
+            const token = ++cardToken;
+            const def = disasterDefinitions[ev.code] || { name: ev.category, color: '#94a3b8', icon: '•', tips: null };
+
+            legendCountryEl.textContent = ev.country || 'Ocean / International Waters';
+            legendRegionEl.textContent = ev.title;
+            legendLatEl.textContent = formatLatCustom(ev.lat);
+            legendLngEl.textContent = formatLngCustom(ev.lon);
+            legendEventEl.textContent = `${def.icon} ${def.name}`;
+            legendEventEl.style.color = def.color;
+            legendDateRow.style.display = 'flex';
+            legendDateEl.textContent = fmtData(ev.time);
+            legendMagRow.style.display = 'flex';
+            legendMagEl.textContent = fmtMagnitude(ev);
+            legendSourceTag.textContent = `Source: NASA ${String(ev.source).toUpperCase()} via Disaster API · ID ${ev.event_id}`;
+
+            // Summary built only from API data
+            const mesmoPais = ev.country ? allEvents.filter(x => x.country === ev.country) : [];
+            const mesmoTipo = mesmoPais.filter(x => x.code === ev.code && x.record_id !== ev.record_id);
+            const area = String(ev.magnitude_unit || '').toLowerCase().startsWith('hectare')
+                ? `, with an estimated burned area of <strong>${esc(fmtMagnitude(ev))}</strong>` : '';
+            legendNewsTitle.textContent = 'Event Summary';
+            legendNewsBox.innerHTML =
+                `📰 <strong>${esc(def.one ? def.one.charAt(0).toUpperCase() + def.one.slice(1) : def.name)}</strong> recorded by the NASA ${esc(String(ev.source).toUpperCase())} catalog on ` +
+                `<strong>${esc(fmtData(ev.time))}</strong>${ev.country ? ` in <strong>${esc(ev.country)}</strong>` : ''}${area}.` +
+                (ev.country ? ` The dataset has <strong>${mesmoTipo.length}</strong> other ${esc(rotulo(ev.code, mesmoTipo.length, false))} in this country.` : '') +
+                renderListaDeEventos(mesmoTipo, 3);
+
+            // Protection tips
+            if (def.tips) {
+                legendProtectionTitle.textContent = `Protection Tips: ${def.name}`;
+                legendSafetyTipsBox.className = 'safety-tips-box';
+                legendSafetyTipsBox.innerHTML = `⚠️ <strong>Protocol:</strong> ${esc(def.tips)}`;
+            } else {
+                legendProtectionTitle.textContent = 'Civil Defense & Safety Guidelines';
+                legendSafetyTipsBox.className = 'safety-tips-box safe';
+                legendSafetyTipsBox.innerHTML = 'ℹ️ Follow the guidance of local civil defense authorities.';
+            }
+
+            renderContagens(mesmoPais.length ? mesmoPais : [ev],
+                ev.country ? `Events in ${ev.country} (dataset)` : 'Events at this location');
+
+            setBadge('● Event record', '#22c55e',
+                `GET /api/eventos/{id} · <span style="opacity:0.8">${esc(ev.record_id)}</span>`);
+
+            mostrarCard();
+            consultarNisar(ev, token);
+        }
+
+        // ---------- 7.2 NISAR radar coverage (GET /api/eventos/{id}/sar/cenas) ----------
+        const nisarCache = new Map();
+
+        const NISAR_STATUS = {
+            ok: ['● Pair available', '#22c55e'],
+            cobertura_baixa: ['● Low coverage', '#f59e0b'],
+            sem_cenas: ['● No scenes', '#94a3b8'],
+            sem_cena_antes: ['● No "before" scene', '#94a3b8'],
+            sem_cena_depois: ['● No "after" scene', '#94a3b8'],
+            sem_par_compativel: ['● No matching pair', '#94a3b8']
+        };
+
+        function textoNisar(r) {
+            const janela = r.janela ? `${esc(r.janela.inicio)} → ${esc(r.janela.fim)}` : '-';
+            const n = `${r.n_cenas ?? 0} scene${r.n_cenas === 1 ? '' : 's'} found in ${janela}`;
+            switch (r.status) {
+                case 'ok':
+                case 'cobertura_baixa': {
+                    const cob = typeof r.cobertura_do_par === 'number' ? ` · coverage ${Math.round(r.cobertura_do_par * 100)}%` : '';
+                    return `Radar images to compare: <strong>before ${esc(r.before)}</strong> and <strong>after ${esc(r.after)}</strong> ` +
+                        `(event on ${esc(r.data_evento)})${cob}.<br><span style="opacity:0.75">${n}.</span>`;
+                }
+                case 'sem_cenas':
+                    return `NISAR has no images of this area between ${janela}.`;
+                case 'sem_cena_antes':
+                    return `${n}, but none <strong>before</strong> the event (${esc(r.data_evento)}). No before/after comparison yet.`;
+                case 'sem_cena_depois':
+                    return `${n}, but none <strong>after</strong> the event (${esc(r.data_evento)}). A new satellite pass may still come.`;
+                case 'sem_par_compativel':
+                    return `${n}, but no before/after pair taken from the same orbit.`;
+                default:
+                    return `${n}. Status: ${esc(r.status)}.`;
+            }
+        }
+
+        async function consultarNisar(ev, token) {
+            sarBox.style.display = 'flex';
+            sarIndicator.textContent = 'Querying...';
+            sarIndicator.style.color = '#c4b5fd';
+            sarResult.textContent = 'Looking for NISAR radar scenes before and after this event...';
+            try {
+                let r = nisarCache.get(ev.record_id);
+                if (!r) {
+                    r = await apiFetch(`/api/eventos/${encodeURIComponent(ev.record_id)}/sar/cenas`);
+                    nisarCache.set(ev.record_id, r);
+                }
+                if (token !== cardToken) return;
+                const [txt, cor] = NISAR_STATUS[r.status] || [`● ${r.status}`, '#94a3b8'];
+                sarIndicator.textContent = txt;
+                sarIndicator.style.color = cor;
+                sarResult.innerHTML = textoNisar(r);
+            } catch (err) {
+                if (token !== cardToken) return;
+                console.error('NISAR scenes query failed:', err);
+                sarIndicator.textContent = '● Unavailable';
+                sarIndicator.style.color = '#f59e0b';
+                sarResult.textContent = `Could not query NISAR scenes (${err.message}).`;
+            }
+        }
+
+        // ---------- 7.3 Card for a COUNTRY or OCEAN point (POST /api/filtrar) ----------
+        async function abrirCardDoLocal(lng, lat, feature) {
+            const token = ++cardToken;
+            const pais = feature ? nomeDoPais(feature) : null;
+            const props = feature ? feature.properties : {};
+
+            legendCountryEl.textContent = pais || 'Ocean / International Waters';
+            legendRegionEl.textContent = feature
+                ? (props.REGION || props.CONTINENT || props.SUBREGION || props['ISO3166-1-Alpha-3'] || props.ISO_A3 || 'Territory')
+                : `Coordinates (${formatLatCustom(lat)}, ${formatLngCustom(lng)})`;
+            legendLatEl.textContent = formatLatCustom(lat);
+            legendLngEl.textContent = formatLngCustom(lng);
+            legendEventEl.textContent = '...';
+            legendEventEl.style.color = '#00e5ff';
+            legendDateRow.style.display = 'none';
+            legendMagRow.style.display = 'none';
+            legendSourceTag.textContent = 'Source: NASA EONET via Disaster API';
+            legendNewsTitle.textContent = 'Recorded Events';
+            legendNewsBox.innerHTML = '⏳ Querying the Disaster API...';
+            legendProtectionTitle.textContent = 'Civil Defense & Safety Guidelines';
+            legendSafetyTipsBox.className = 'safety-tips-box safe';
+            legendSafetyTipsBox.innerHTML = '✅ Select an event point to see protection tips for that hazard.';
+            renderContagens([], pais ? `Events in ${pais} (API)` : 'Events within 300 km (API)');
+            sarBox.style.display = 'none';
+            mostrarCard();
+
+            // Country: bbox query on the API, then exact polygon check here.
+            // Ocean: radius query around the clicked point.
+            const filtro = feature
+                ? { bbox: countryBoxes[feature.id - 1] }
+                : { lat, lon: lng, raio_km: 300 };
+            const descricao = feature ? `bbox of ${pais}` : '300 km radius';
+
+            setBadge('Querying API...', '#38bdf8', `POST /api/filtrar · ${esc(descricao)}`);
+            try {
+                const data = await apiFetch('/api/filtrar', { method: 'POST', body: filtro });
+                if (token !== cardToken) return;
+
+                let eventos = (data.resultados || []).map(normalizarEvento).filter(Boolean)
+                    .map(ev => eventsById.get(ev.record_id) || ev);
+                if (feature) eventos = eventos.filter(ev => pontoNaGeometria(ev.lon, ev.lat, feature.geometry));
+                const total = eventos.length;
+
+                legendEventEl.textContent = `${total} event${total === 1 ? '' : 's'}`;
+                renderContagens(eventos, pais ? `Events in ${pais} (API)` : 'Events within 300 km (API)');
+
+                if (total) {
+                    const visiveis = activeFilter === 'all' ? eventos : eventos.filter(ev => ev.code === activeFilter);
+                    const aviso = activeFilter !== 'all' && visiveis.length !== total
+                        ? ` <span style="opacity:0.75">(${visiveis.length} match the active filter)</span>` : '';
+                    legendNewsBox.innerHTML = `📰 <strong>${total}</strong> event${total === 1 ? '' : 's'} recorded ` +
+                        `${pais ? 'in ' + esc(pais) : 'near this point'}.${aviso} Most recent:` +
+                        renderListaDeEventos(visiveis.length ? visiveis : eventos, 5);
+                    setBadge(`● Active (${total} records)`, '#22c55e',
+                        `POST /api/filtrar · ${esc(descricao)} · ${data.total_encontrado} in box, ${total} inside`);
+                } else {
+                    legendNewsBox.innerHTML = `📰 No events in the dataset ${pais ? 'for ' + esc(pais) : 'near this point'}.`;
+                    setBadge('● 0 Records', '#94a3b8', `No records for ${esc(pais || 'this area')} in the Disaster API.`);
+                }
+            } catch (err) {
+                if (token !== cardToken) return;
+                console.error('Disaster API query failed:', err);
+                legendEventEl.textContent = '-';
+                legendNewsBox.textContent = 'Could not load events for this area.';
+                setBadge('● Offline', '#f59e0b', `API error: ${esc(err.message)}`);
+            }
+        }
+
+        function fecharCard() {
+            cardToken++;
+            legendCard.style.display = 'none';
+            marcarSelecionado(null);
+            marcarPontoClicado(null);
+            selecionarPais(null);
+        }
+
+        legendCloseBtn.addEventListener('click', fecharCard);
+
+        function selecionarEvento(ev) {
+            marcarSelecionado(ev.record_id);
+            marcarPontoClicado(null);
+            selecionarPais(null);
+            abrirCardDoEvento(ev);
+            map.flyTo({ center: [ev.lon, ev.lat], zoom: Math.max(map.getZoom(), 4.2), pitch: 30, essential: true });
+        }
+
         // ========================================================
-        // 8. DISASTER FILTERS & VIEW MODE
+        // 8. DISASTER FILTERS & VIEW MODE (points react to the bottom dock)
         // ========================================================
         const filterBtns = document.querySelectorAll('.filter-btn');
         const viewTitleText = document.getElementById('current-view-title');
         const disasterCols = document.querySelectorAll('.disaster-col');
 
         function applyFilter(filterCode) {
+            activeFilter = filterCode;
+
             filterBtns.forEach(btn => {
                 btn.classList.toggle('active', btn.getAttribute('data-filter') === filterCode);
             });
 
-            if (filterCode === 'all') {
-                viewTitleText.textContent = 'Overview';
-            } else {
-                viewTitleText.textContent = `${filterCode} Events`;
-            }
+            viewTitleText.textContent = filterCode === 'all'
+                ? 'Overview'
+                : `${disasterDefinitions[filterCode].name} (${filterCode})`;
 
             disasterCols.forEach(col => {
                 col.classList.toggle('active', col.getAttribute('data-code') === filterCode);
             });
 
-            renderHazardMarkers(filterCode);
+            aplicarFiltroNasCamadas();
+            atualizarStatusDosDados();
+
+            // If the selected event is hidden by the new filter, close its card
+            const sel = selectedRecordId && eventsById.get(selectedRecordId);
+            if (sel && filterCode !== 'all' && sel.code !== filterCode) fecharCard();
+
+            // Frame the visible events
+            const lista = eventosVisiveis();
+            if (lista.length) {
+                const bounds = new maplibregl.LngLatBounds();
+                lista.forEach(ev => bounds.extend([ev.lon, ev.lat]));
+                map.fitBounds(bounds, { padding: { top: 120, bottom: 160, left: 60, right: 60 }, maxZoom: 4.5, duration: 1200 });
+            }
         }
 
         filterBtns.forEach(btn => {
@@ -1732,72 +2149,59 @@
         // 9. GLOBE CLICK INTERACTION
         // ========================================================
         map.on('click', (e) => {
-            const { lng, lat } = e.lngLat;
-
-            // Query country layer at clicked point
-            let countryName = 'Ocean / International Waters';
-            let regionName = `Coordinates (${lat >= 0 ? lat.toFixed(2) + '° N' : Math.abs(lat).toFixed(2) + '° S'}, ${lng >= 0 ? lng.toFixed(2) + '° E' : Math.abs(lng).toFixed(2) + '° W'})`;
-
-            try {
-                const features = map.queryRenderedFeatures(e.point, { layers: ['paises-fill'] });
-                if (features && features.length > 0) {
-                    const feat = features[0];
-                    countryName = feat.properties.ADMIN || feat.properties.name || feat.properties.NAME || 'Selected Country';
-                    regionName = feat.properties.REGION || feat.properties.CONTINENT || 'Territory';
-
-                    // Highlight selected country
-                    if (selectedCountryId !== null) {
-                        map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: false });
+            // 9.1 Event point? (small pixel box makes the points easy to hit)
+            if (map.getLayer('hazard-points')) {
+                const box = [[e.point.x - 6, e.point.y - 6], [e.point.x + 6, e.point.y + 6]];
+                const hits = map.queryRenderedFeatures(box, { layers: ['hazard-points'] });
+                if (hits.length) {
+                    // nearest point to the cursor
+                    let best = null, bestD = Infinity;
+                    hits.forEach(h => {
+                        const ev = eventsById.get(h.properties.record_id);
+                        if (!ev) return;
+                        const p = map.project([ev.lon, ev.lat]);
+                        const d = (p.x - e.point.x) ** 2 + (p.y - e.point.y) ** 2;
+                        if (d < bestD) { bestD = d; best = ev; }
+                    });
+                    if (best) {
+                        hoverPopup.remove();
+                        selecionarEvento(best);
+                        return;
                     }
-                    selectedCountryId = feat.id;
-                    map.setFeatureState({ source: 'paises-source', id: selectedCountryId }, { selected: true });
                 }
+            }
+
+            // 9.2 Country or ocean
+            const { lng, lat } = e.lngLat;
+            let feature = null;
+            try {
+                const features = map.getLayer('paises-fill') ? map.queryRenderedFeatures(e.point, { layers: ['paises-fill'] }) : [];
+                // use the ORIGINAL polygon (rendered features are clipped to tiles)
+                if (features.length && countriesData) feature = countriesData.features[features[0].id - 1] || null;
             } catch (err) {
                 // Layer might still be initializing
             }
+            if (!feature) feature = paisDoPonto(lng, lat);
 
-            // Exact requested console.log including Country, Longitude, and Latitude
-            console.log(`Country: ${countryName}, Longitude: ${lng}, Latitude: ${lat}`);
+            console.log(`Country: ${feature ? nomeDoPais(feature) : 'Ocean / International Waters'}, Longitude: ${lng}, Latitude: ${lat}`);
 
-            if (selectedMarkerElement) {
-                selectedMarkerElement.classList.remove('selected-target');
-                selectedMarkerElement = null;
-            }
-
-            // Create or move precise clicked marker
-            if (preciseClickMarker) preciseClickMarker.remove();
-
-            const clickEl = document.createElement('div');
-            clickEl.className = 'precise-click-marker';
-            clickEl.innerHTML = `
-                <div class="precise-click-ring"></div>
-                <div class="precise-click-dot"></div>
-            `;
-
-            preciseClickPoint = { lat, lng };
-            preciseClickMarker = new maplibregl.Marker({ element: clickEl, anchor: 'center' })
-                .setLngLat([lng, lat])
-                .addTo(map);
-
-            const customPoint = {
-                id: 'custom-' + Date.now(),
-                country: countryName,
-                region: regionName,
-                code: null, // Safe / normal condition
-                lat: lat,
-                lng: lng,
-                probs: {
-                    'D01': 1,
-                    'D02': 1,
-                    'D03': 1,
-                    'D04': 2,
-                    'D06': 1
-                }
-            };
-
-            openLegendCard(customPoint);
-            updateMarkersOcclusion();
+            marcarSelecionado(null);
+            selecionarPais(feature ? feature.id : null);
+            marcarPontoClicado(lng, lat);
+            abrirCardDoLocal(lng, lat, feature);
         });
+
+        // Small public hook for the front-end team / debugging in the console
+        window.disasterApp = {
+            map,
+            applyFilter,
+            reload: carregarEventos,
+            events: () => allEvents,
+            selectEvent: (recordId) => { const ev = eventsById.get(recordId); if (ev) selecionarEvento(ev); }
+        };
+
+        // Start: load every event from the API
+        carregarEventos();
 
         // ========================================================
         // 10. DRAGGABLE TRANSLUCENT BOTTOM DOCK
@@ -1852,6 +2256,7 @@
             }
         });
     </script>
+
 </body>
 
 </html>
